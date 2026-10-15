@@ -19,6 +19,7 @@ canvas{width:100%;height:220px}.stat{display:grid;grid-template-columns:repeat(a
 <header><h1>🩺 Ημερολόγιο Διαβήτη</h1><small id="hdr"></small></header>
 <nav id="nav"></nav><main>
 <div id="alerts"></div>
+<section id="s-today"><div class="card"><h3>Σήμερα – δόσεις κατά ώρα</h3><p class="note" id="tdate"></p><div id="today2"></div></div></section>
 <section id="s-glu"><div class="card np"><h3>Νέα μέτρηση γλυκόζης</h3><div class="row">
 <div><label>Ημερομηνία/ώρα</label><input type="datetime-local" id="g-dt"></div>
 <div><label>Τιμή (mg/dL)</label><input type="number" id="g-v" inputmode="numeric"></div>
@@ -28,13 +29,13 @@ canvas{width:100%;height:220px}.stat{display:grid;grid-template-columns:repeat(a
 <p class="note">🟥 χαμηλή &lt;<span class="lo"></span> · 🟩 στόχος · 🟧 υψηλή. Όρια: γενικές συστάσεις ADA (επεξεργάσιμα στις Ρυθμίσεις).</p></div>
 <div class="card"><h3>Μετρήσεις</h3><div class="tw"><table id="g-t"></table></div></div></section>
 
-<section id="s-med"><div class="card"><h3>Σημερινές δόσεις</h3><div id="today"></div><button class="b g np" onclick="askNotif()">🔔 Ενεργοποίηση υπενθυμίσεων</button><p class="note">Οι υπενθυμίσεις λειτουργούν μόνο όσο η σελίδα είναι ανοιχτή.</p></div>
+<section id="s-med"><div class="card"><h3>Σημερινές δόσεις (κατά ώρα)</h3><div id="today"></div><button class="b g np" onclick="askNotif()">🔔 Ενεργοποίηση υπενθυμίσεων</button><p class="note">Οι υπενθυμίσεις λειτουργούν μόνο όσο η σελίδα είναι ανοιχτή.</p></div>
 <div class="card np"><h3>Προσθήκη φαρμάκου</h3><div class="row"><div><label>Όνομα</label><input id="m-n"></div><div><label>Δόση</label><input id="m-d" placeholder="π.χ. 1000 mg / 10 μονάδες"></div>
 <div><label>Ώρες λήψης (χωρισμένες με κόμμα)</label><input id="m-t" placeholder="08:00,20:00"></div></div>
 <label>Μόνο συγκεκριμένες ημέρες (0=Κυρ,1=Δευ…6=Σαβ, π.χ. 1) – κενό = καθημερινά</label><input id="m-days" placeholder="κενό = κάθε μέρα">
 <label><input type="checkbox" id="m-meal" style="width:auto"> Ινσουλίνη γευμάτων (προειδοποίηση χαμηλής τιμής)</label>
 <button class="b" onclick="addMed()">Προσθήκη</button></div>
-<div class="card"><h3>Λίστα φαρμάκων</h3><div class="tw"><table id="m-t2"></table></div></div>
+<div class="card"><h3>Λίστα φαρμάκων (επεξεργασία)</h3><div class="tw"><table id="m-t2"></table></div></div>
 <div class="card"><h3>Ιστορικό λήψεων</h3><div class="tw"><table id="m-log"></table></div></div></section>
 
 <section id="s-w"><div class="card"><h3>Στόχος βάρους</h3><div id="w-goal"></div></div>
@@ -84,7 +85,7 @@ const loc=d=>dstr(d)+'T'+pad(d.getHours())+':'+pad(d.getMinutes()),fmt=s=>new Da
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function cls(g){const s=S.set,t=(CTX[g.c]||CTX.oth)[1];if(g.v<s.lo)return'low';const h=t=='p'?s.ph:t=='b'?s.bh:s.fh;return g.v>h?'high':'tgt'}
 const LBL={low:'Χαμηλή',high:'Υψηλή',tgt:'Στόχος'};
-const TABS=[['glu','Γλυκόζη'],['med','Φάρμακα'],['w','Βάρος'],['rep','Αναφορές'],['doc','Οδηγίες γιατρού'],['set','Ρυθμίσεις']];
+const TABS=[['today','Σήμερα'],['glu','Γλυκόζη'],['med','Φάρμακα'],['w','Βάρος'],['rep','Αναφορές'],['doc','Οδηγίες γιατρού'],['set','Ρυθμίσεις']];
 $('nav').innerHTML=TABS.map(t=>`<button data-t="${t[0]}">${t[1]}</button>`).join('');
 $('nav').onclick=e=>{if(e.target.dataset.t)tab(e.target.dataset.t)};
 function tab(t){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==t));document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id=='s-'+t));if(t=='glu')chart()}
@@ -138,10 +139,14 @@ function importJSON(inp,setupOnly){const f=inp.files[0];if(!f)return;const r=new
 const SM={'p-name':'profile.name','p-dob':'profile.dob','p-sex':'profile.sex','p-dx':'profile.dx','p-w0':'profile.w0','p-wg':'profile.wg','t-lo':'set.lo','t-fh':'set.fh','t-ph':'set.ph','t-bh':'set.bh','k-on':'set.skip.on','k-th':'set.skip.th','x-on':'set.tit.on','x-name':'set.tit.name','x-dose':'set.tit.dose','x-days':'set.tit.days','x-lo':'set.tit.lo','x-hi':'set.tit.hi','x-up':'set.tit.up','x-dn':'set.tit.dn'};
 function path(p,v){const k=p.split('.');let o=S;while(k.length>1)o=o[k.shift()];if(v===undefined)return o[k[0]];o[k[0]]=v}
 function saveSet(){for(const id in SM){const el=$(id);let v=el.type=='checkbox'?el.checked:el.value;if(el.type=='number')v=v===''?'':+v;path(SM[id],v)}save();render();alert('Αποθηκεύτηκε')}
+function todayHTML(d){const by={};S.meds.filter(m=>onDay(m,d)).forEach(m=>(m.times.length?m.times:['—']).forEach(t=>(by[t]=by[t]||[]).push(m)));
+ const ks=Object.keys(by).sort();if(!ks.length)return'<p>Δεν υπάρχουν δόσεις για σήμερα.</p>';
+ return '<table>'+ks.map(t=>`<tr><td style="font-size:1.2em;font-weight:bold;vertical-align:top;width:70px">${esc(t)}</td><td>${by[t].map(m=>{const ok=S.taken.some(x=>x.m==m.id&&x.d==d&&x.s==t);
+  return`<div style="margin:3px 0"><button class="b ${ok?'ok':'g'}" style="margin:0 6px 0 0" onclick="take(${m.id},'${esc(t)}')">${ok?'✔':'☐'}</button><b>${esc(m.name)}</b> <span class="note">${esc(m.dose)}${m.days&&m.days.length?' · μόνο '+m.days.map(i=>['Κυρ','Δευ','Τρι','Τετ','Πεμ','Παρ','Σαβ'][i]).join(','):''}</span></div>`}).join('')}</td></tr>`).join('')+'</table>'}
 function render(){const p=S.profile;$('hdr').textContent=[p.name,age()!==''?age()+' ετών':'',p.dx].filter(Boolean).join(' · ')||'Συμπληρώστε τα στοιχεία σας στις Ρυθμίσεις';
  document.querySelectorAll('.lo').forEach(e=>e.textContent=S.set.lo);
  $('g-t').innerHTML='<tr><th>Ημ/ώρα</th><th>Τιμή</th><th>Στιγμή</th><th>Κατάσταση</th><th>Σημ.</th><th class="np"></th></tr>'+[...S.glu].sort((a,b)=>a.t<b.t?1:-1).map(g=>`<tr class="${cls(g)}"><td>${fmt(g.t)}</td><td><b>${g.v}</b></td><td>${CTX[g.c]?.[0]||''}</td><td>${LBL[cls(g)]}</td><td>${esc(g.n)}</td><td class="np"><button class="b r" onclick="del('glu',${g.id})">✕</button></td></tr>`).join('');
- const d=dstr(new Date());$('today').innerHTML=S.meds.length?S.meds.filter(m=>onDay(m,d)).map(m=>(m.times.length?m.times:['—']).map(t=>{const ok=S.taken.some(x=>x.m==m.id&&x.d==d&&x.s==t);return`<div style="margin:4px 0"><button class="b ${ok?'ok':'g'}" onclick="take(${m.id},'${esc(t)}')">${ok?'✔ Το πήρα':'Πήρα το φάρμακο'}</button> ${esc(t)} – <b>${esc(m.name)}</b> ${esc(m.dose)}</div>`}).join('')).join(''):'<p>Δεν έχουν καταχωρηθεί φάρμακα.</p>';
+ const d=dstr(new Date()),TH=todayHTML(d);$('today').innerHTML=TH;$('today2').innerHTML=TH;$('tdate').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long'});
  $('m-t2').innerHTML='<tr><th>Όνομα</th><th>Δόση</th><th>Ώρες</th><th>Φορές/ημέρα</th><th></th></tr>'+S.meds.map(m=>`<tr><td>${esc(m.name)}${m.meal?' 🍽️':''}</td><td>${esc(m.dose)}</td><td>${esc(m.times.join(', '))}${m.days&&m.days.length?' ('+m.days.map(i=>['Κυρ','Δευ','Τρι','Τετ','Πεμ','Παρ','Σαβ'][i]).join(',')+')':''}</td><td>${m.times.length}${m.days&&m.days.length?'/εβδ.':''}</td><td><button class="b r" onclick="del('meds',${m.id})">✕</button></td></tr>`).join('');
  const mn=id=>S.meds.find(m=>m.id==id)?.name||'(διαγραμμένο)';
  $('m-log').innerHTML='<tr><th>Ημέρα</th><th>Δόση</th><th>Φάρμακο</th><th>Καταγράφηκε</th></tr>'+[...S.taken].sort((a,b)=>a.at<b.at?1:-1).slice(0,100).map(x=>`<tr><td>${x.d}</td><td>${esc(x.s)}</td><td>${esc(mn(x.m))}</td><td>${fmt(x.at)}</td></tr>`).join('');
@@ -158,5 +163,5 @@ function seedDemo(){const now=new Date();S.meds=S.meds.length?S.meds:[{id:1,name
   S.meds.forEach(m=>m.times.forEach(t=>{if((i+t.length+m.id)%5)S.taken.push({id:id++,m:m.id,d:ds,s:t,at:ds+'T'+t})}));if(i%3==0)S.w.push({id:id++,d:ds,v:+(113-(14-i)*0.15).toFixed(1)})}}
 if(DEMO)seedDemo();
 $('g-dt').value=loc(new Date());$('w-d').value=dstr(new Date());$('r-e').value=dstr(new Date());
-render();tab(DEMO?'rep':'glu');
+render();tab(DEMO?'rep':'today');
 </script></body></html>
