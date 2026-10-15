@@ -212,7 +212,7 @@ async function loadDoc(force){const id=docId(S.docUrl);if(!id){DOCLIVE=null;docS
 function visitHTML(){const v=S.profile.visit,d=v?new Date(v):null;if(!d||isNaN(d))return'';
  const s=d.toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}),s2=s.charAt(0).toUpperCase()+s.slice(1);
  const t0=new Date();t0.setHours(0,0,0,0);const d0=new Date(d);d0.setHours(0,0,0,0);const n=Math.round((d0-t0)/864e5);
- return`📅 Επόμενο ραντεβού – Επόμενη επίσκεψη στο γιατρό: <b>${s2}, ${pad(d.getHours())}:${pad(d.getMinutes())}</b> <small style="opacity:.85">(${n>1?'σε '+n+' ημέρες':n==1?'αύριο':n==0?'σήμερα':'πριν '+(-n)+' ημέρες'})</small>`}
+ return`📅 Επόμενη επίσκεψη στο γιατρό: <b>${s2}, ${pad(d.getHours())}:${pad(d.getMinutes())}</b> <small style="opacity:.85">(${n>1?'σε '+n+' ημέρες':n==1?'αύριο':n==0?'σήμερα':'πριν '+(-n)+' ημέρες'})</small>`}
 function render(){const p=S.profile;$('hdr').textContent=[p.name,age()!==''?age()+' ετών':'',p.dx].filter(Boolean).join(' · ')||'Συμπληρώστε τα στοιχεία σας στις Ρυθμίσεις';
  $('visit').innerHTML=visitHTML();document.querySelectorAll('.lo').forEach(e=>e.textContent=S.set.lo);
  $('g-t').innerHTML='<tr><th>Ημ/ώρα</th><th>Τιμή</th><th>Στιγμή</th><th>Κατάσταση</th><th>Σημ.</th><th class="np ed"></th></tr>'+[...S.glu].sort((a,b)=>a.t<b.t?1:-1).map(g=>`<tr class="${cls(g)}"><td>${fmt(g.t)}</td><td><b>${g.v}</b></td><td>${CTX[g.c]?.[0]||''}</td><td>${LBL[cls(g)]}</td><td>${esc(g.n)}</td><td class="np ed"><button class="b r ed" onclick="del('glu',${g.id})">✕</button></td></tr>`).join('');
