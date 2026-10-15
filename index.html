@@ -14,13 +14,15 @@ table{width:100%;border-collapse:collapse;font-size:.9em}th,td{padding:6px;borde
 .bar{background:#ddd;border-radius:8px;height:22px;overflow:hidden}.bar div{background:#2e7d32;height:100%;color:#fff;text-align:center;font-size:.85em;line-height:22px}
 .warn{background:#fff3cd;border-left:5px solid #f0ad4e;padding:10px;border-radius:6px;margin:8px 0}.note{font-size:.8em;color:#666}
 canvas{width:100%;height:220px}.stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}.stat div{background:#e3f2fd;padding:8px;border-radius:8px}.stat b{display:block;font-size:1.3em}
+body.view .ed{display:none!important}.vbanner{background:#263238;color:#fff;padding:8px 12px;font-size:.9em;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}.vbanner button{background:#fff;color:#263238;border:0;border-radius:6px;padding:5px 10px;cursor:pointer}
+.modal{position:fixed;inset:0;background:#0007;display:flex;align-items:center;justify-content:center;z-index:9;padding:12px}.modal>div{background:#fff;border-radius:10px;padding:16px;max-width:420px}
 @media print{header,nav,.np{display:none!important}section{display:none!important}#s-rep{display:block!important}.card{box-shadow:none}body{background:#fff}}
 </style></head><body>
 <header><h1>🩺 Ημερολόγιο Διαβήτη</h1><small id="hdr"></small></header>
-<nav id="nav"></nav><main>
+<div id="vb"></div><div id="modal"></div><nav id="nav"></nav><main>
 <div id="alerts"></div>
-<section id="s-today"><div class="card"><h3>Σήμερα – δόσεις κατά ώρα</h3><p class="note" id="tdate"></p><div id="today2"></div></div></section>
-<section id="s-glu"><div class="card np"><h3>Νέα μέτρηση γλυκόζης</h3><div class="row">
+<section id="s-today"><div class="card"><h3>Σήμερα – δόσεις κατά ώρα</h3><p class="note" id="tdate"></p><div id="today2"></div></div><div class="card"><h3>💉 Τρέχουσα δόση <span class="titn"></span></h3><div class="tdose"></div></div><div class="card"><h3>Συμμόρφωση φαρμάκων – τελευταίες 7 ημέρες</h3><div id="adh7"></div></div></section>
+<section id="s-glu"><div class="card np ed"><h3>Νέα μέτρηση γλυκόζης</h3><div class="row">
 <div><label>Ημερομηνία/ώρα</label><input type="datetime-local" id="g-dt"></div>
 <div><label>Τιμή (mg/dL)</label><input type="number" id="g-v" inputmode="numeric"></div>
 <div><label>Χρονική στιγμή</label><select id="g-c"></select></div></div>
@@ -29,26 +31,26 @@ canvas{width:100%;height:220px}.stat{display:grid;grid-template-columns:repeat(a
 <p class="note">🟥 χαμηλή &lt;<span class="lo"></span> · 🟩 στόχος · 🟧 υψηλή. Όρια: γενικές συστάσεις ADA (επεξεργάσιμα στις Ρυθμίσεις).</p></div>
 <div class="card"><h3>Μετρήσεις</h3><div class="tw"><table id="g-t"></table></div></div></section>
 
-<section id="s-med"><div class="card"><h3>Σημερινές δόσεις (κατά ώρα)</h3><div id="today"></div><button class="b g np" onclick="askNotif()">🔔 Ενεργοποίηση υπενθυμίσεων</button><p class="note">Οι υπενθυμίσεις λειτουργούν μόνο όσο η σελίδα είναι ανοιχτή.</p></div>
-<div class="card np"><h3>Προσθήκη φαρμάκου</h3><div class="row"><div><label>Όνομα</label><input id="m-n"></div><div><label>Δόση</label><input id="m-d" placeholder="π.χ. 1000 mg / 10 μονάδες"></div>
+<section id="s-med"><div class="card"><h3>Σημερινές δόσεις (κατά ώρα)</h3><div id="today"></div><button class="b g np ed" onclick="askNotif()">🔔 Ενεργοποίηση υπενθυμίσεων</button><p class="note ed">Οι υπενθυμίσεις λειτουργούν μόνο όσο η σελίδα είναι ανοιχτή.</p></div>
+<div class="card np ed"><h3>Προσθήκη φαρμάκου</h3><div class="row"><div><label>Όνομα</label><input id="m-n"></div><div><label>Δόση</label><input id="m-d" placeholder="π.χ. 1000 mg / 10 μονάδες"></div>
 <div><label>Ώρες λήψης (χωρισμένες με κόμμα)</label><input id="m-t" placeholder="08:00,20:00"></div></div>
 <label>Μόνο συγκεκριμένες ημέρες (0=Κυρ,1=Δευ…6=Σαβ, π.χ. 1) – κενό = καθημερινά</label><input id="m-days" placeholder="κενό = κάθε μέρα">
 <label><input type="checkbox" id="m-meal" style="width:auto"> Ινσουλίνη γευμάτων (προειδοποίηση χαμηλής τιμής)</label>
 <button class="b" onclick="addMed()">Προσθήκη</button></div>
-<div class="card"><h3>Λίστα φαρμάκων (επεξεργασία)</h3><div class="tw"><table id="m-t2"></table></div></div>
+<div class="card"><h3>💉 Τρέχουσα δόση <span class="titn"></span></h3><div class="tdose"></div></div><div class="card"><h3>Λίστα φαρμάκων (επεξεργασία)</h3><div class="tw"><table id="m-t2"></table></div></div>
 <div class="card"><h3>Ιστορικό λήψεων</h3><div class="tw"><table id="m-log"></table></div></div></section>
 
 <section id="s-w"><div class="card"><h3>Στόχος βάρους</h3><div id="w-goal"></div></div>
-<div class="card np"><h3>Νέα μέτρηση βάρους</h3><div class="row"><div><label>Ημερομηνία</label><input type="date" id="w-d"></div><div><label>Βάρος (kg)</label><input type="number" step="0.1" id="w-v"></div></div><button class="b" onclick="addW()">Αποθήκευση</button></div>
+<div class="card np ed"><h3>Νέα μέτρηση βάρους</h3><div class="row"><div><label>Ημερομηνία</label><input type="date" id="w-d"></div><div><label>Βάρος (kg)</label><input type="number" step="0.1" id="w-v"></div></div><button class="b" onclick="addW()">Αποθήκευση</button></div>
 <div class="card"><div class="tw"><table id="w-t"></table></div></div></section>
 
-<section id="s-rep"><div class="card np"><h3>Αναφορά</h3><div class="row"><div><label>Συχνότητα</label><select id="r-f" onchange="S.set.repFreq=this.value;save();renderRep()"><option value="7">Εβδομαδιαία</option><option value="15">Κάθε 15 ημέρες</option><option value="30">Μηνιαία</option></select></div>
+<section id="s-rep"><div class="card np"><h3>Αναφορά</h3><div class="row"><div><label>Συχνότητα</label><select id="r-f" onchange="S.set.repFreq=this.value;if(!VIEW)save();renderRep()"><option value="7">Εβδομαδιαία</option><option value="15">Κάθε 15 ημέρες</option><option value="30">Μηνιαία</option></select></div>
 <div><label>Τέλος περιόδου</label><input type="date" id="r-e" onchange="renderRep()"></div></div>
 <button class="b" onclick="print()">🖨️ Εκτύπωση / PDF</button><button class="b g" onclick="csv()">⬇️ Εξαγωγή CSV</button></div>
 <div class="card" id="rep"></div></section>
 
 <section id="s-doc"><div class="card"><h3>Οδηγίες γιατρού</h3><div id="doc-v" style="white-space:pre-wrap"></div>
-<div class="np"><label>Επεξεργασία</label><textarea id="doc-e" rows="8"></textarea><button class="b" onclick="S.doctor=$('doc-e').value;save();render()">Αποθήκευση</button></div></div></section>
+<div class="np ed"><label>Επεξεργασία</label><textarea id="doc-e" rows="8"></textarea><button class="b" onclick="S.doctor=$('doc-e').value;save();render()">Αποθήκευση</button></div></div></section>
 
 <section id="s-set"><div class="card"><h3>Προσωπικά στοιχεία</h3><div class="row">
 <div><label>Όνομα</label><input id="p-name"></div><div><label>Ημ. γέννησης</label><input type="date" id="p-dob"></div>
@@ -61,10 +63,17 @@ canvas{width:100%;height:220px}.stat{display:grid;grid-template-columns:repeat(a
 <label>Προειδοποίηση αν η μέτρηση πριν το φαγητό είναι κάτω από (mg/dL)</label><input type="number" id="k-th"></div>
 <div class="card"><h3>Κανόνας τιτλοποίησης βασικής ινσουλίνης (π.χ. Tresiba)</h3><p class="note">Μόνο υπόδειξη – εφαρμόστε ΜΟΝΟ αν το έχει ορίσει ο γιατρός σας.</p>
 <label><input type="checkbox" id="x-on" style="width:auto"> Ενεργός</label><div class="row">
-<div><label>Όνομα ινσουλίνης</label><input id="x-name"></div><div><label>Τρέχουσα δόση (μονάδες)</label><input type="number" id="x-dose"></div><div><label>Συνεχόμενες ημέρες</label><input type="number" id="x-days"></div>
-<div><label>Στόχος νηστείας από</label><input type="number" id="x-lo"></div><div><label>έως</label><input type="number" id="x-hi"></div>
-<div><label>Αύξηση (μονάδες) αν όλες ≥ «έως»</label><input type="number" id="x-up"></div><div><label>Μείωση (μονάδες) αν κάτω</label><input type="number" id="x-dn"></div></div></div>
+<div><label>Όνομα ινσουλίνης</label><input id="x-name"></div><div><label>Τρέχουσα δόση (μονάδες)</label><input type="number" id="x-dose"></div><div><label>Συνεχόμενες ημέρες (πρωινά)</label><input type="number" id="x-days"></div>
+<div><label>Στόχος νηστείας από</label><input type="number" id="x-lo"></div><div><label>Όριο πρωινής τιμής (πρόταση αν ≥)</label><input type="number" id="x-hi"></div>
+<div><label>Βήμα αύξησης (μονάδες)</label><input type="number" id="x-up"></div><div><label>Μείωση (μονάδες) αν κάτω</label><input type="number" id="x-dn"></div></div></div>
 <button class="b ok" onclick="saveSet()">Αποθήκευση ρυθμίσεων</button>
+<div class="card" style="margin-top:12px"><h3>🌐 Δημοσίευση προόδου</h3>
+<p class="note">Ο σύνδεσμος προβολής δείχνει την πρόοδό σας μόνο για ανάγνωση (π.χ. στον γιατρό). Τα δεδομένα γράφονται ως <code>data.json</code> στο δημόσιο αποθετήριο GitHub – <b>θα είναι ορατά σε όποιον έχει τον σύνδεσμο</b>.</p>
+<div class="row"><div><label>Αποθετήριο (κάτοχος/όνομα)</label><input id="pub-repo"></div><div><label>GitHub token (fine-grained, Contents: read/write μόνο σε αυτό το αποθετήριο)</label><input id="pub-tok" type="password" autocomplete="off" placeholder="github_pat_…"></div></div>
+<p class="note">Το token αποθηκεύεται μόνο σε αυτόν τον browser και δεν περιλαμβάνεται στο αντίγραφο JSON.</p>
+<label><input type="checkbox" id="pub-auto" style="width:auto"> Αυτόματη δημοσίευση μετά από κάθε αλλαγή</label>
+<button class="b ok" onclick="pubSave()">Αποθήκευση</button><button class="b" onclick="publish(true)">⬆️ Δημοσίευση τώρα</button><button class="b g" onclick="copyShare()">🔗 Αντιγραφή συνδέσμου</button><button class="b g" onclick="open(location.pathname+'?view&local','_blank')">👁️ Προεπισκόπηση προβολής</button>
+<p>Τελευταία δημοσίευση: <b id="pub-last">—</b> <span id="pub-st" class="note"></span></p><p class="note">Σύνδεσμος: <span id="pub-link"></span></p></div>
 <div class="card" style="margin-top:12px"><h3>Αντίγραφα ασφαλείας</h3><button class="b" onclick="exportJSON()">⬇️ Εξαγωγή JSON</button>
 <label>Πλήρης επαναφορά (αντικαθιστά τα πάντα)</label><input type="file" accept=".json" onchange="importJSON(this,false)">
 <label>📥 Εισαγωγή ρυθμίσεων (φάρμακα, όρια, οδηγίες – κρατά τις μετρήσεις)</label><input type="file" accept=".json" onchange="importJSON(this,true)">
@@ -74,29 +83,50 @@ canvas{width:100%;height:220px}.stat{display:grid;grid-template-columns:repeat(a
 const PRESET=/*PRESET*/null;
 const K='diabetesApp_v1',$=id=>document.getElementById(id);
 const CTX={fast:['Πριν πρωινό (νηστεία)','f'],aBf:['Μετά πρωινό','p'],bLu:['Πριν μεσημεριανό','f'],aLu:['Μετά μεσημεριανό','p'],bDi:['Πριν βραδινό','f'],aDi:['Μετά βραδινό','p'],bed:['Πριν ύπνο','b'],oth:['Άλλο','f']};
-const DEF={profile:{name:'',dob:'',sex:'',dx:'',w0:'',wg:'',h:'',miles:[]},set:{lo:70,fh:130,ph:180,bh:180,repFreq:'7',skip:{on:true,th:80},tit:{on:false,name:'Tresiba',dose:40,days:3,lo:80,hi:120,up:2,dn:2}},meds:[],glu:[],taken:[],w:[],doctor:''};
+const DEF={profile:{name:'',dob:'',sex:'',dx:'',w0:'',wg:'',h:'',miles:[]},set:{lo:70,fh:130,ph:180,bh:180,repFreq:'7',skip:{on:true,th:80},tit:{on:false,name:'Tresiba',dose:'',hist:[],days:3,lo:80,hi:120,up:2,dn:2}},meds:[],glu:[],taken:[],w:[],doctor:''};
 function merge(a,b){for(const k in b){if(b[k]&&typeof b[k]=='object'&&!Array.isArray(b[k])){a[k]=merge(a[k]&&typeof a[k]=='object'?a[k]:{},b[k])}else a[k]=b[k]}return a}
+const Q=new URLSearchParams(location.search),HAS_LOCAL=!!localStorage.getItem(K);
+let VIEW=Q.has('view')||(!HAS_LOCAL&&!PRESET&&!Q.has('edit')),VLOCAL=Q.has('local'),AUTOVIEW=VIEW&&!Q.has('view');
 let S;try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
 if(!S){S=merge(JSON.parse(JSON.stringify(DEF)),PRESET||{})}else S=merge(JSON.parse(JSON.stringify(DEF)),S);
 let DEMO=location.hash=='#demo';
-function save(){if(!DEMO)localStorage.setItem(K,JSON.stringify(S))}
+function save(){if(DEMO||VIEW)return;localStorage.setItem(K,JSON.stringify(S));schedPub()}
+const PK=K+'_pub';function pubCfg(){try{return Object.assign({repo:defRepo(),tok:'',auto:false,last:'',sha:''},JSON.parse(localStorage.getItem(PK)||'{}'))}catch(e){return{repo:defRepo(),tok:'',auto:false,last:''}}}
+function defRepo(){const h=location.hostname.match(/^([^.]+)\.github\.io$/),seg=location.pathname.split('/').filter(Boolean)[0];return h&&seg&&!/\.html$/.test(seg)?h[1]+'/'+seg:'pfilios/diabetes-tracker'}
+function setPub(o){localStorage.setItem(PK,JSON.stringify(Object.assign(pubCfg(),o)))}
+function shareURL(repo){const[o,r]=(repo||pubCfg().repo).split('/');return`https://${o}.github.io/${r}/?view`}
+function pubSave(){setPub({repo:$('pub-repo').value.trim()||defRepo(),tok:$('pub-tok').value.trim(),auto:$('pub-auto').checked});pubUI();alert('Αποθηκεύτηκε')}
+function pubUI(){const c=pubCfg();$('pub-repo').value=c.repo;$('pub-tok').value=c.tok;$('pub-auto').checked=c.auto;$('pub-last').textContent=c.last?fmt(c.last):'—';$('pub-link').textContent=shareURL(c.repo)}
+function copyShare(){const u=shareURL();(navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(()=>alert('Αντιγράφηκε: '+u)).catch(()=>prompt('Αντιγράψτε τον σύνδεσμο:',u))}
+let pubT;function schedPub(){const c=pubCfg();if(c.auto&&c.tok){clearTimeout(pubT);pubT=setTimeout(()=>publish(false),5000)}}
+function pubData(){const reps={};['7','15','30'].forEach(n=>{const e=dstr(new Date()),f=new Date();f.setDate(f.getDate()-n+1);const s=stats(dstr(f),e);reps[n]={from:dstr(f),to:e,avg:s.avg,min:s.min,max:s.max,n:s.n,inRange:s.c.tgt,high:s.c.high,low:s.c.low,adherence:s.adh}});
+ return{app:'diabetes-tracker',version:1,publishedAt:new Date().toISOString(),profile:S.profile,set:S.set,meds:S.meds,glu:S.glu,taken:S.taken,w:S.w,doctor:S.doctor,reports:reps}}
+async function publish(manual){const c=pubCfg(),st=$('pub-st');if(!c.tok){if(manual)alert('Ορίστε πρώτα GitHub token');return}
+ const url=`https://api.github.com/repos/${c.repo}/contents/data.json`,H={Authorization:'Bearer '+c.tok,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
+ st.textContent='Δημοσίευση…';try{let sha;const g=await fetch(url+'?ref=main&t='+Date.now(),{headers:H,cache:'no-store'});if(g.ok)sha=(await g.json()).sha;else if(g.status!=404)throw new Error('GET '+g.status);
+  const d=pubData(),content=btoa(unescape(encodeURIComponent(JSON.stringify(d))));
+  const p=await fetch(url,{method:'PUT',headers:H,body:JSON.stringify({message:'Ενημέρωση προόδου '+d.publishedAt,content,branch:'main',...(sha?{sha}:{})})});
+  if(!p.ok)throw new Error('PUT '+p.status+(p.status==401?' (μη έγκυρο token)':p.status==403||p.status==404?' (το token δεν έχει δικαίωμα Contents: write)':p.status==409?' (σύγκρουση – δοκιμάστε ξανά)':''));
+  setPub({last:d.publishedAt});st.textContent='✔ OK';pubUI()}catch(e){st.textContent='✖ '+e.message;if(manual)alert('Αποτυχία δημοσίευσης: '+e.message)}}
+async function loadRemote(){const[o,r]=defRepo().split('/'),ts='?t='+Date.now();
+ for(const u of[`https://raw.githubusercontent.com/${o}/${r}/main/data.json${ts}`,'./data.json'+ts]){try{const x=await fetch(u,{cache:'no-store'});if(x.ok)return await x.json()}catch(e){}}throw new Error('no data')}
 const pad=n=>String(n).padStart(2,'0'),dstr=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const loc=d=>dstr(d)+'T'+pad(d.getHours())+':'+pad(d.getMinutes()),fmt=s=>new Date(s).toLocaleString('el-GR',{dateStyle:'short',timeStyle:'short'});
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function cls(g){const s=S.set,t=(CTX[g.c]||CTX.oth)[1];if(g.v<s.lo)return'low';const h=t=='p'?s.ph:t=='b'?s.bh:s.fh;return g.v>h?'high':'tgt'}
 const LBL={low:'Χαμηλή',high:'Υψηλή',tgt:'Στόχος'};
-const TABS=[['today','Σήμερα'],['glu','Γλυκόζη'],['med','Φάρμακα'],['w','Βάρος'],['rep','Αναφορές'],['doc','Οδηγίες γιατρού'],['set','Ρυθμίσεις']];
-$('nav').innerHTML=TABS.map(t=>`<button data-t="${t[0]}">${t[1]}</button>`).join('');
+const TABS=[['today','Σήμερα'],['glu','Γλυκόζη'],['med','Φάρμακα'],['w','Βάρος'],['rep','Αναφορές'],['doc','Οδηγίες γιατρού'],['set','Ρυθμίσεις']];const VTABS=()=>VIEW?TABS.filter(t=>t[0]!='set'):TABS;
+function navHTML(){$('nav').innerHTML=VTABS().map(t=>`<button data-t="${t[0]}">${t[1]}</button>`).join('')}
 $('nav').onclick=e=>{if(e.target.dataset.t)tab(e.target.dataset.t)};
 function tab(t){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==t));document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id=='s-'+t));if(t=='glu')chart()}
 $('g-c').innerHTML=Object.entries(CTX).map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join('');
 function age(){if(!S.profile.dob)return'';const b=new Date(S.profile.dob),n=new Date();let a=n.getFullYear()-b.getFullYear();if(n<new Date(n.getFullYear(),b.getMonth(),b.getDate()))a--;return a}
-function addGlu(){const v=+$('g-v').value;if(!v||!$('g-dt').value)return alert('Συμπληρώστε ημερομηνία και τιμή');const g={id:Date.now(),t:$('g-dt').value,v,c:$('g-c').value,n:$('g-n').value};S.glu.push(g);save();$('g-v').value='';$('g-n').value='';render();checkSkip(g)}
+function addGlu(){if(VIEW)return;const v=+$('g-v').value;if(!v||!$('g-dt').value)return alert('Συμπληρώστε ημερομηνία και τιμή');const g={id:Date.now(),t:$('g-dt').value,v,c:$('g-c').value,n:$('g-n').value};S.glu.push(g);save();$('g-v').value='';$('g-n').value='';render();checkSkip(g);titPrompt(g)}
 function checkSkip(g){const k=S.set.skip;if(k.on&&(CTX[g.c]||CTX.oth)[1]!='p'&&g.v<k.th&&S.meds.some(m=>m.meal))alert(`⚠️ Γλυκόζη ${g.v} mg/dL (<${k.th}). Σύμφωνα με τον κανόνα σας: ΜΗΝ κάνετε ινσουλίνη γευμάτων τώρα. Φάτε και ξαναμετρήστε.`)}
-function del(arr,id){if(confirm('Διαγραφή;')){S[arr]=S[arr].filter(x=>x.id!=id);save();render()}}
-function addMed(){const n=$('m-n').value.trim();if(!n)return;S.meds.push({id:Date.now(),name:n,dose:$('m-d').value,times:$('m-t').value.split(',').map(s=>s.trim()).filter(Boolean),meal:$('m-meal').checked,days:$('m-days').value.split(',').map(s=>s.trim()).filter(Boolean).map(Number)});$('m-days').value='';save();['m-n','m-d','m-t'].forEach(i=>$(i).value='');render()}
-function take(mid,slot){const d=dstr(new Date());const i=S.taken.findIndex(x=>x.m==mid&&x.d==d&&x.s==slot);if(i>=0)S.taken.splice(i,1);else S.taken.push({id:Date.now(),m:mid,d,s:slot,at:loc(new Date())});save();render()}
-function addW(){const v=+$('w-v').value;if(!v)return;S.w.push({id:Date.now(),d:$('w-d').value||dstr(new Date()),v});save();$('w-v').value='';render()}
+function del(arr,id){if(VIEW)return;if(confirm('Διαγραφή;')){S[arr]=S[arr].filter(x=>x.id!=id);save();render()}}
+function addMed(){if(VIEW)return;const n=$('m-n').value.trim();if(!n)return;S.meds.push({id:Date.now(),name:n,dose:$('m-d').value,times:$('m-t').value.split(',').map(s=>s.trim()).filter(Boolean),meal:$('m-meal').checked,days:$('m-days').value.split(',').map(s=>s.trim()).filter(Boolean).map(Number)});$('m-days').value='';save();['m-n','m-d','m-t'].forEach(i=>$(i).value='');render()}
+function take(mid,slot){if(VIEW)return;const d=dstr(new Date());const i=S.taken.findIndex(x=>x.m==mid&&x.d==d&&x.s==slot);if(i>=0)S.taken.splice(i,1);else S.taken.push({id:Date.now(),m:mid,d,s:slot,at:loc(new Date())});save();render()}
+function addW(){if(VIEW)return;const v=+$('w-v').value;if(!v)return;S.w.push({id:Date.now(),d:$('w-d').value||dstr(new Date()),v});save();$('w-v').value='';render()}
 const onDay=(m,d)=>!m.days||!m.days.length||m.days.includes(new Date(d+'T12:00').getDay());
 function stats(from,to){const G=S.glu.filter(g=>{const d=g.t.slice(0,10);return d>=from&&d<=to}),v=G.map(g=>g.v);
  const c={low:0,tgt:0,high:0};G.forEach(g=>c[cls(g)]++);let exp=0,tk=0;
@@ -126,7 +156,7 @@ function renderRep(){const n=+S.set.repFreq,e=$('r-e').value||dstr(new Date()),f
  <div class="tgt">Εντός στόχου<b>${s.c.tgt}</b>${pct('tgt')}</div><div class="high">Υψηλές<b>${s.c.high}</b>${pct('high')}</div><div class="low">Χαμηλές<b>${s.c.low}</b>${pct('low')}</div>
  <div>Συμμόρφωση φαρμάκων<b>${s.adh}${s.adh!=='-'?'%':''}</b>${s.tk}/${s.exp} δόσεις</div></div><p><b>Τάση βάρους:</b> ${wt}</p>${(()=>{const i=wInfo();if(!i.M.length)return'';const b=bmi(i.cur);return`<p><b>Στόχοι βάρους:</b> ${i.M.map(m=>`${i.cur<=m.kg?'✔':'○'} ${m.kg} kg ${esc(m.label)}`).join(' · ')}${i.next?` — επόμενος σε ${(i.cur-i.next.kg).toFixed(1)} kg`:''}${b?` · BMI ${b} (${bmiCat(b)})`:''}</p>`})()}
  <h3>Μέσος όρος ανά χρονική στιγμή</h3><table><tr><th>Στιγμή</th><th>Μετρήσεις</th><th>Μ.Ο.</th></tr>${Object.entries(CTX).map(([k,v])=>{const a=s.G.filter(g=>g.c==k);return a.length?`<tr><td>${v[0]}</td><td>${a.length}</td><td>${Math.round(a.reduce((q,g)=>q+g.v,0)/a.length)}</td></tr>`:''}).join('')}</table>
- <h3>Φάρμακα</h3><table>${S.meds.map(m=>`<tr><td>${esc(m.name)}</td><td>${esc(m.dose)}</td><td>${esc(m.times.join(', '))}</td></tr>`).join('')||'<tr><td>—</td></tr>'}</table>
+ <h3>Φάρμακα</h3><table>${S.meds.map(m=>`<tr><td>${esc(m.name)}</td><td>${esc(mDose(m))}</td><td>${esc(m.times.join(', '))}</td></tr>`).join('')||'<tr><td>—</td></tr>'}</table>
  <h3>Μετρήσεις</h3><table><tr><th>Ημ/ώρα</th><th>Τιμή</th><th>Στιγμή</th><th>Σημ.</th></tr>${s.G.sort((a,b)=>a.t<b.t?-1:1).map(g=>`<tr class="${cls(g)}"><td>${fmt(g.t)}</td><td>${g.v}</td><td>${CTX[g.c]?.[0]||''}</td><td>${esc(g.n)}</td></tr>`).join('')}</table>
  <p class="note">Όρια: χαμηλή &lt;${S.set.lo}, νηστεία &gt;${S.set.fh}, μετά φαγητό &gt;${S.set.ph} mg/dL (γενικές συστάσεις ADA, επεξεργάσιμα). Δεν αποτελεί ιατρική συμβουλή.</p>`;return{f,e,s}}
 function dl(name,data,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;a.click()}
@@ -138,11 +168,11 @@ function importJSON(inp,setupOnly){const f=inp.files[0];if(!f)return;const r=new
  save();render();alert('Η εισαγωγή ολοκληρώθηκε')}catch(e){alert('Μη έγκυρο αρχείο JSON')}};r.readAsText(f)}
 const SM={'p-name':'profile.name','p-dob':'profile.dob','p-sex':'profile.sex','p-dx':'profile.dx','p-w0':'profile.w0','p-wg':'profile.wg','p-h':'profile.h','t-lo':'set.lo','t-fh':'set.fh','t-ph':'set.ph','t-bh':'set.bh','k-on':'set.skip.on','k-th':'set.skip.th','x-on':'set.tit.on','x-name':'set.tit.name','x-dose':'set.tit.dose','x-days':'set.tit.days','x-lo':'set.tit.lo','x-hi':'set.tit.hi','x-up':'set.tit.up','x-dn':'set.tit.dn'};
 function path(p,v){const k=p.split('.');let o=S;while(k.length>1)o=o[k.shift()];if(v===undefined)return o[k[0]];o[k[0]]=v}
-function saveSet(){for(const id in SM){const el=$(id);let v=el.type=='checkbox'?el.checked:el.value;if(el.type=='number')v=v===''?'':+v;path(SM[id],v)}S.profile.miles=$('p-miles').value.split('\n').map(l=>l.split('|')).filter(a=>+a[0]).map(a=>({kg:+a[0],label:(a[1]||'').trim()}));save();render();alert('Αποθηκεύτηκε')}
+function saveSet(){if(VIEW)return;const od=S.set.tit.dose;for(const id in SM){const el=$(id);let v=el.type=='checkbox'?el.checked:el.value;if(el.type=='number')v=v===''?'':+v;path(SM[id],v)}if(S.set.tit.dose!==od&&S.set.tit.dose!==''){S.set.tit.hist=S.set.tit.hist||[];S.set.tit.hist.push({d:loc(new Date()),from:od===''?null:+od,to:+S.set.tit.dose,how:'ρυθμίσεις'})}S.profile.miles=$('p-miles').value.split('\n').map(l=>l.split('|')).filter(a=>+a[0]).map(a=>({kg:+a[0],label:(a[1]||'').trim()}));save();render();alert('Αποθηκεύτηκε')}
 function todayHTML(d){const by={};S.meds.filter(m=>onDay(m,d)).forEach(m=>(m.times.length?m.times:['—']).forEach(t=>(by[t]=by[t]||[]).push(m)));
  const ks=Object.keys(by).sort();if(!ks.length)return'<p>Δεν υπάρχουν δόσεις για σήμερα.</p>';
  return '<table>'+ks.map(t=>`<tr><td style="font-size:1.2em;font-weight:bold;vertical-align:top;width:70px">${esc(t)}</td><td>${by[t].map(m=>{const ok=S.taken.some(x=>x.m==m.id&&x.d==d&&x.s==t);
-  return`<div style="margin:3px 0"><button class="b ${ok?'ok':'g'}" style="margin:0 6px 0 0" onclick="take(${m.id},'${esc(t)}')">${ok?'✔':'☐'}</button><b>${esc(m.name)}</b> <span class="note">${esc(m.dose)}${m.days&&m.days.length?' · μόνο '+m.days.map(i=>['Κυρ','Δευ','Τρι','Τετ','Πεμ','Παρ','Σαβ'][i]).join(','):''}</span></div>`}).join('')}</td></tr>`).join('')+'</table>'}
+  return`<div style="margin:3px 0"><button class="b ${ok?'ok':'g'}" style="margin:0 6px 0 0" ${VIEW?'disabled':''} onclick="take(${m.id},'${esc(t)}')">${ok?'✔':'☐'}</button><b>${esc(m.name)}</b> <span class="note">${esc(mDose(m))}${m.days&&m.days.length?' · μόνο '+m.days.map(i=>['Κυρ','Δευ','Τρι','Τετ','Πεμ','Παρ','Σαβ'][i]).join(','):''}</span></div>`}).join('')}</td></tr>`).join('')+'</table>'}
 function bmi(w){const h=+S.profile.h;return h&&w?(w/h/h).toFixed(1):''}
 function bmiCat(b){return b<18.5?'λιποβαρής':b<25?'φυσιολογικό':b<30?'υπέρβαρος':b<35?'παχυσαρκία Ι':b<40?'παχυσαρκία ΙΙ':'παχυσαρκία ΙΙΙ'}
 function wInfo(){const W=[...S.w].sort((a,b)=>a.d<b.d?-1:1),p=S.profile,w0=+p.w0||(W[0]&&W[0].v),wg=+p.wg,cur=W.length?W[W.length-1].v:w0,low=W.length?Math.min(...W.map(x=>x.v)):cur;
@@ -155,25 +185,42 @@ function wGoal(){const{w0,wg,cur,M,reached,next}=wInfo();if(!w0||!wg)return'<p>�
  ${next?`<p>Επόμενος στόχος: <b>${next.kg} kg</b> (${esc(next.label)}) – απομένουν <b>${(cur-next.kg).toFixed(1)} kg</b></p>`:'<p>🎉 Όλοι οι στόχοι επιτεύχθηκαν!</p>'}
  ${b?`<p>BMI: <b>${b}</b> (${bmiCat(b)})${wg?` · στον στόχο: ${bmi(wg)}`:''}</p>`:'<p class="note">Ορίστε ύψος για υπολογισμό BMI.</p>'}
  <table>${M.map(m=>`<tr class="${cur<=m.kg?'tgt':''}"><td>${m.kg} kg</td><td>${esc(m.label)}</td><td>${cur<=m.kg?'<span class="badge" style="background:#2e7d32;color:#fff">🎉 Επιτεύχθηκε!</span>':'απομένουν '+(cur-m.kg).toFixed(1)+' kg'}</td></tr>`).join('')}</table>`}
+function recentAdh(){let h='<table><tr><th>Ημέρα</th><th>Δόσεις</th><th>%</th></tr>';for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-i);const s=stats(dstr(d),dstr(d));h+=`<tr><td>${d.toLocaleDateString('el-GR',{weekday:'short',day:'numeric',month:'numeric'})}</td><td>${s.tk}/${s.exp}</td><td>${s.adh}${s.adh!=='-'?'%':''}</td></tr>`}return h+'</table>'}
+const isTit=m=>S.set.tit.name&&m.name.trim().toLowerCase()==S.set.tit.name.trim().toLowerCase();
+const mDose=m=>isTit(m)&&S.set.tit.dose!==''?S.set.tit.dose+' μονάδες':m.dose;
+function setDose(nv,how){if(VIEW)return;const x=S.set.tit;nv=+nv;if(!nv||nv==x.dose)return;x.hist=x.hist||[];x.hist.push({d:loc(new Date()),from:x.dose===''?null:+x.dose,to:nv,how});x.dose=nv;save();render()}
+function doseHTML(){const x=S.set.tit,h=[...(x.hist||[])].reverse();
+ return`<p style="font-size:1.3em"><b>${x.dose!==''?x.dose+' μονάδες':'— (δεν έχει οριστεί)'}</b></p>
+ <div class="ed row"><div><input type="number" class="dose-in" placeholder="νέα δόση"></div><div><button class="b" style="margin:0" onclick="setDose(this.closest('.card').querySelector('.dose-in').value,'χειροκίνητα')">Αλλαγή δόσης</button></div></div>
+ ${h.length?`<h4>Ιστορικό δόσης</h4><table><tr><th>Ημερομηνία</th><th>Αλλαγή</th><th>Τρόπος</th></tr>${h.map(e=>`<tr><td>${fmt(e.d)}</td><td>${e.from??'—'} → <b>${e.to}</b></td><td>${esc(e.how)}</td></tr>`).join('')}</table>`:'<p class="note">Δεν υπάρχουν αλλαγές δόσης.</p>'}`}
+function consec(){const x=S.set.tit,by={};S.glu.filter(g=>g.c=='fast').forEach(g=>{const d=g.t.slice(0,10);if(!by[d]||g.t<by[d].t)by[d]=g});let n=0;for(let i=0;;i++){const d=new Date();d.setDate(d.getDate()-i);const g=by[dstr(d)];if(!g){if(i==0)continue;break}if(g.v>=x.hi)n++;else break}return n}
+function titPrompt(g){const x=S.set.tit;if(VIEW||g.c!='fast'||g.v<x.hi||x.dose==='')return;const X=+x.dose,N=+x.up,n=consec();
+ $('modal').innerHTML=`<div class="modal"><div><h3>💉 ${esc(x.name)}</h3><p>Πρωινή τιμή <b>${g.v}</b> mg/dL (≥${x.hi}).<br>Συνεχόμενα πρωινά ≥${x.hi}: <b>${n}</b> από ${x.days}.</p>
+ <p><b>Πρόταση: αύξηση ${esc(x.name)} κατά ${N} μονάδες (${X} → ${X+N})</b></p><p class="note">Ο γιατρός έγραψε αύξηση αν δεν είναι &lt;${x.hi} για ${x.days} συνεχόμενες μέρες.${n<x.days?' Δεν έχουν συμπληρωθεί ακόμη '+x.days+' μέρες.':''} Επιβεβαιώστε με τον γιατρό.</p>
+ <button class="b ok" onclick="$('modal').innerHTML='';setDose(${X+N},'αποδοχή πρότασης')">Αποδοχή</button><button class="b g" onclick="$('modal').innerHTML=''">Αγνόηση</button></div></div>`}
 function render(){const p=S.profile;$('hdr').textContent=[p.name,age()!==''?age()+' ετών':'',p.dx].filter(Boolean).join(' · ')||'Συμπληρώστε τα στοιχεία σας στις Ρυθμίσεις';
  document.querySelectorAll('.lo').forEach(e=>e.textContent=S.set.lo);
- $('g-t').innerHTML='<tr><th>Ημ/ώρα</th><th>Τιμή</th><th>Στιγμή</th><th>Κατάσταση</th><th>Σημ.</th><th class="np"></th></tr>'+[...S.glu].sort((a,b)=>a.t<b.t?1:-1).map(g=>`<tr class="${cls(g)}"><td>${fmt(g.t)}</td><td><b>${g.v}</b></td><td>${CTX[g.c]?.[0]||''}</td><td>${LBL[cls(g)]}</td><td>${esc(g.n)}</td><td class="np"><button class="b r" onclick="del('glu',${g.id})">✕</button></td></tr>`).join('');
- const d=dstr(new Date()),TH=todayHTML(d);$('today').innerHTML=TH;$('today2').innerHTML=TH;$('tdate').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long'});
- $('m-t2').innerHTML='<tr><th>Όνομα</th><th>Δόση</th><th>Ώρες</th><th>Φορές/ημέρα</th><th></th></tr>'+S.meds.map(m=>`<tr><td>${esc(m.name)}${m.meal?' 🍽️':''}</td><td>${esc(m.dose)}</td><td>${esc(m.times.join(', '))}${m.days&&m.days.length?' ('+m.days.map(i=>['Κυρ','Δευ','Τρι','Τετ','Πεμ','Παρ','Σαβ'][i]).join(',')+')':''}</td><td>${m.times.length}${m.days&&m.days.length?'/εβδ.':''}</td><td><button class="b r" onclick="del('meds',${m.id})">✕</button></td></tr>`).join('');
+ $('g-t').innerHTML='<tr><th>Ημ/ώρα</th><th>Τιμή</th><th>Στιγμή</th><th>Κατάσταση</th><th>Σημ.</th><th class="np ed"></th></tr>'+[...S.glu].sort((a,b)=>a.t<b.t?1:-1).map(g=>`<tr class="${cls(g)}"><td>${fmt(g.t)}</td><td><b>${g.v}</b></td><td>${CTX[g.c]?.[0]||''}</td><td>${LBL[cls(g)]}</td><td>${esc(g.n)}</td><td class="np ed"><button class="b r ed" onclick="del('glu',${g.id})">✕</button></td></tr>`).join('');
+ const d=dstr(new Date()),TH=todayHTML(d);$('today').innerHTML=TH;$('today2').innerHTML=TH;$('adh7').innerHTML=recentAdh();document.querySelectorAll('.tdose').forEach(e=>e.innerHTML=doseHTML());document.querySelectorAll('.titn').forEach(e=>e.textContent=S.set.tit.name||'βασικής ινσουλίνης');$('tdate').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long'});
+ $('m-t2').innerHTML='<tr><th>Όνομα</th><th>Δόση</th><th>Ώρες</th><th>Φορές/ημέρα</th><th></th></tr>'+S.meds.map(m=>`<tr><td>${esc(m.name)}${m.meal?' 🍽️':''}</td><td>${esc(mDose(m))}</td><td>${esc(m.times.join(', '))}${m.days&&m.days.length?' ('+m.days.map(i=>['Κυρ','Δευ','Τρι','Τετ','Πεμ','Παρ','Σαβ'][i]).join(',')+')':''}</td><td>${m.times.length}${m.days&&m.days.length?'/εβδ.':''}</td><td><button class="b r ed" onclick="del('meds',${m.id})">✕</button></td></tr>`).join('');
  const mn=id=>S.meds.find(m=>m.id==id)?.name||'(διαγραμμένο)';
  $('m-log').innerHTML='<tr><th>Ημέρα</th><th>Δόση</th><th>Φάρμακο</th><th>Καταγράφηκε</th></tr>'+[...S.taken].sort((a,b)=>a.at<b.at?1:-1).slice(0,100).map(x=>`<tr><td>${x.d}</td><td>${esc(x.s)}</td><td>${esc(mn(x.m))}</td><td>${fmt(x.at)}</td></tr>`).join('');
  const W=[...S.w].sort((a,b)=>a.d<b.d?-1:1),w0=+p.w0||(W[0]&&W[0].v),wg=+p.wg,cur=W.length?W[W.length-1].v:w0;
  $('w-goal').innerHTML=wGoal(w0,wg,cur);
- $('w-t').innerHTML='<tr><th>Ημερομηνία</th><th>Βάρος</th><th>Μεταβολή</th><th></th></tr>'+W.slice().reverse().map(w=>`<tr><td>${w.d}</td><td>${w.v} kg</td><td>${w0?(w.v-w0).toFixed(1):''}</td><td><button class="b r" onclick="del('w',${w.id})">✕</button></td></tr>`).join('');
+ $('w-t').innerHTML='<tr><th>Ημερομηνία</th><th>Βάρος</th><th>Μεταβολή</th><th></th></tr>'+W.slice().reverse().map(w=>`<tr><td>${w.d}</td><td>${w.v} kg</td><td>${w0?(w.v-w0).toFixed(1):''}</td><td><button class="b r ed" onclick="del('w',${w.id})">✕</button></td></tr>`).join('');
  $('doc-v').innerHTML=S.doctor?esc(S.doctor):'<i>Οι οδηγίες του γιατρού θα προστεθούν σύντομα.</i>';$('doc-e').value=S.doctor;
  for(const id in SM){const el=$(id),v=path(SM[id]);if(el.type=='checkbox')el.checked=!!v;else el.value=v??''}
  $('p-miles').value=(S.profile.miles||[]).map(m=>m.kg+' | '+m.label).join('\n');$('r-f').value=S.set.repFreq;$('alerts').innerHTML=titHint();renderRep();if($('s-glu').classList.contains('on'))chart()}
 function askNotif(){if(!('Notification'in window))return alert('Ο browser δεν υποστηρίζει ειδοποιήσεις');Notification.requestPermission().then(p=>alert(p=='granted'?'Οι υπενθυμίσεις ενεργοποιήθηκαν':'Οι ειδοποιήσεις απορρίφθηκαν'))}
-const fired={};setInterval(()=>{const n=new Date(),hm=pad(n.getHours())+':'+pad(n.getMinutes()),d=dstr(n);S.meds.filter(m=>onDay(m,d)).forEach(m=>m.times.forEach(t=>{const k=d+m.id+t;if(t==hm&&!fired[k]&&!S.taken.some(x=>x.m==m.id&&x.d==d&&x.s==t)){fired[k]=1;const msg=`Ώρα για: ${m.name} ${m.dose}`;if(window.Notification&&Notification.permission=='granted')new Notification('💊 Υπενθύμιση φαρμάκου',{body:msg});else alert(msg)}}))},20000);
+const fired={};setInterval(()=>{if(VIEW)return;const n=new Date(),hm=pad(n.getHours())+':'+pad(n.getMinutes()),d=dstr(n);S.meds.filter(m=>onDay(m,d)).forEach(m=>m.times.forEach(t=>{const k=d+m.id+t;if(t==hm&&!fired[k]&&!S.taken.some(x=>x.m==m.id&&x.d==d&&x.s==t)){fired[k]=1;const msg=`Ώρα για: ${m.name} ${m.dose}`;if(window.Notification&&Notification.permission=='granted')new Notification('💊 Υπενθύμιση φαρμάκου',{body:msg});else alert(msg)}}))},20000);
 function seedDemo(){const now=new Date();S.meds=S.meds.length?S.meds:[{id:1,name:'Μετφορμίνη',dose:'1000 mg',times:['08:00','20:00']},{id:2,name:'Ινσουλίνη βάσης',dose:'20 μονάδες',times:['22:00']}];let id=1;
  for(let i=0;i<15;i++){const d=new Date(now);d.setDate(d.getDate()-i);const ds=dstr(d);[['fast','07:30',110,40],['aBf','10:00',160,60],['bDi','19:30',115,40],['aDi','22:00',165,70]].forEach(([c,t,b,r])=>S.glu.push({id:id++,t:ds+'T'+t,v:Math.round(b+(Math.sin(i*7+t.length*3+b)*.5+.1)*r),c,n:''}));
   S.meds.forEach(m=>m.times.forEach(t=>{if((i+t.length+m.id)%5)S.taken.push({id:id++,m:m.id,d:ds,s:t,at:ds+'T'+t})}));if(i%3==0)S.w.push({id:id++,d:ds,v:+(113-(14-i)*0.15).toFixed(1)})}}
-if(DEMO)seedDemo();
+function banner(){if(!VIEW){$('vb').innerHTML='';return}
+ $('vb').innerHTML=`<div class="vbanner np"><span>👁️ Προβολή μόνο — τελευταία ενημέρωση: <b>${VLOCAL?'τοπικά δεδομένα (προεπισκόπηση)':S.publishedAt?fmt(S.publishedAt):'—'}</b></span>${HAS_LOCAL&&!VLOCAL?'':AUTOVIEW?'<button onclick="location.href=location.pathname+\'?edit\'">Χρήση ως κάτοχος</button>':''}${VLOCAL?'<button onclick="close()">Κλείσιμο</button>':''}</div>`}
+function start(){document.body.classList.toggle('view',VIEW);navHTML();banner();
 $('g-dt').value=loc(new Date());$('w-d').value=dstr(new Date());$('r-e').value=dstr(new Date());
-render();tab(DEMO?'rep':'today');
+if(!VIEW)pubUI();render();tab(DEMO?'rep':'today')}
+if(DEMO)seedDemo();
+if(VIEW&&!VLOCAL){$('alerts').innerHTML='<div class="card">Φόρτωση δεδομένων…</div>';loadRemote().then(d=>{S=merge(JSON.parse(JSON.stringify(DEF)),d);S.publishedAt=d.publishedAt;start()}).catch(()=>{if(AUTOVIEW){VIEW=false;start()}else{start();$('alerts').innerHTML='<div class="warn">Δεν βρέθηκαν δημοσιευμένα δεδομένα.</div>'}})}else start();
 </script></body></html>
