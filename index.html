@@ -49,8 +49,9 @@ body.view .ed{display:none!important}.vbanner{background:#263238;color:#fff;padd
 <button class="b" onclick="print()">🖨️ Εκτύπωση / PDF</button><button class="b g" onclick="csv()">⬇️ Εξαγωγή CSV</button></div>
 <div class="card" id="rep"></div></section>
 
-<section id="s-doc"><div class="card"><h3>Οδηγίες γιατρού</h3><div id="doc-v" style="white-space:pre-wrap"></div>
-<div class="np ed"><label>Επεξεργασία</label><textarea id="doc-e" rows="8"></textarea><button class="b" onclick="S.doctor=$('doc-e').value;save();render()">Αποθήκευση</button></div></div></section>
+<section id="s-doc"><div class="card"><h3>Οδηγίες γιατρού</h3><p class="note" id="doc-src"></p><div id="doc-v" style="white-space:pre-wrap"></div>
+<div class="np ed"><label>Σύνδεσμος Google Doc οδηγιών (URL ή ID – το έγγραφο πρέπει να είναι «Οποιοσδήποτε με τον σύνδεσμο: Αναγνώστης»)</label><input id="doc-url" placeholder="https://docs.google.com/document/d/…"><button class="b g" onclick="S.docUrl=$('doc-url').value.trim();save();loadDoc(true)">Αποθήκευση συνδέσμου & φόρτωση</button>
+<label>Τοπικό κείμενο (εφεδρικό)</label><textarea id="doc-e" rows="8"></textarea><button class="b" onclick="S.doctor=$('doc-e').value;save();render()">Αποθήκευση</button></div></div></section>
 
 <section id="s-set"><div class="card"><h3>Προσωπικά στοιχεία</h3><div class="row">
 <div><label>Όνομα</label><input id="p-name"></div><div><label>Ημ. γέννησης</label><input type="date" id="p-dob"></div>
@@ -83,7 +84,7 @@ body.view .ed{display:none!important}.vbanner{background:#263238;color:#fff;padd
 const PRESET=/*PRESET*/null;
 const K='diabetesApp_v1',$=id=>document.getElementById(id);
 const CTX={fast:['Πριν πρωινό (νηστεία)','f'],aBf:['Μετά πρωινό','p'],bLu:['Πριν μεσημεριανό','f'],aLu:['Μετά μεσημεριανό','p'],bDi:['Πριν βραδινό','f'],aDi:['Μετά βραδινό','p'],bed:['Πριν ύπνο','b'],oth:['Άλλο','f']};
-const DEF={profile:{name:'',dob:'',sex:'',dx:'',w0:'',wg:'',h:'',miles:[]},set:{lo:70,fh:130,ph:180,bh:180,repFreq:'7',skip:{on:true,th:80},tit:{on:false,name:'Tresiba',dose:'',hist:[],days:3,lo:80,hi:120,up:2,dn:2}},meds:[],glu:[],taken:[],w:[],doctor:''};
+const DEF={profile:{name:'',dob:'',sex:'',dx:'',w0:'',wg:'',h:'',miles:[]},set:{lo:70,fh:130,ph:180,bh:180,repFreq:'7',skip:{on:true,th:80},tit:{on:false,name:'Tresiba',dose:'',hist:[],days:3,lo:80,hi:120,up:2,dn:2}},meds:[],glu:[],taken:[],w:[],doctor:'',docUrl:''};
 function merge(a,b){for(const k in b){if(b[k]&&typeof b[k]=='object'&&!Array.isArray(b[k])){a[k]=merge(a[k]&&typeof a[k]=='object'?a[k]:{},b[k])}else a[k]=b[k]}return a}
 const Q=new URLSearchParams(location.search),HAS_LOCAL=!!localStorage.getItem(K);
 let VIEW=Q.has('view')||(!HAS_LOCAL&&!PRESET&&!Q.has('edit')),VLOCAL=Q.has('local'),AUTOVIEW=VIEW&&!Q.has('view');
@@ -100,7 +101,7 @@ function pubUI(){const c=pubCfg();$('pub-repo').value=c.repo;$('pub-tok').value=
 function copyShare(){const u=shareURL();(navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(()=>alert('Αντιγράφηκε: '+u)).catch(()=>prompt('Αντιγράψτε τον σύνδεσμο:',u))}
 let pubT;function schedPub(){const c=pubCfg();if(c.auto&&c.tok){clearTimeout(pubT);pubT=setTimeout(()=>publish(false),5000)}}
 function pubData(){const reps={};['7','15','30'].forEach(n=>{const e=dstr(new Date()),f=new Date();f.setDate(f.getDate()-n+1);const s=stats(dstr(f),e);reps[n]={from:dstr(f),to:e,avg:s.avg,min:s.min,max:s.max,n:s.n,inRange:s.c.tgt,high:s.c.high,low:s.c.low,adherence:s.adh}});
- return{app:'diabetes-tracker',version:1,publishedAt:new Date().toISOString(),profile:S.profile,set:S.set,meds:S.meds,glu:S.glu,taken:S.taken,w:S.w,doctor:S.doctor,reports:reps}}
+ return{app:'diabetes-tracker',version:1,publishedAt:new Date().toISOString(),profile:S.profile,set:S.set,meds:S.meds,glu:S.glu,taken:S.taken,w:S.w,doctor:S.doctor,docUrl:S.docUrl,reports:reps}}
 async function publish(manual){const c=pubCfg(),st=$('pub-st');if(!c.tok){if(manual)alert('Ορίστε πρώτα GitHub token');return}
  const url=`https://api.github.com/repos/${c.repo}/contents/data.json`,H={Authorization:'Bearer '+c.tok,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
  st.textContent='Δημοσίευση…';try{let sha;const g=await fetch(url+'?ref=main&t='+Date.now(),{headers:H,cache:'no-store'});if(g.ok)sha=(await g.json()).sha;else if(g.status!=404)throw new Error('GET '+g.status);
@@ -118,7 +119,7 @@ const LBL={low:'Χαμηλή',high:'Υψηλή',tgt:'Στόχος'};
 const TABS=[['today','Σήμερα'],['glu','Γλυκόζη'],['med','Φάρμακα'],['w','Βάρος'],['rep','Αναφορές'],['doc','Οδηγίες γιατρού'],['set','Ρυθμίσεις']];const VTABS=()=>VIEW?TABS.filter(t=>t[0]!='set'):TABS;
 function navHTML(){$('nav').innerHTML=VTABS().map(t=>`<button data-t="${t[0]}">${t[1]}</button>`).join('')}
 $('nav').onclick=e=>{if(e.target.dataset.t)tab(e.target.dataset.t)};
-function tab(t){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==t));document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id=='s-'+t));if(t=='glu')chart()}
+function tab(t){if(t=='doc')loadDoc(false);document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==t));document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id=='s-'+t));if(t=='glu')chart()}
 $('g-c').innerHTML=Object.entries(CTX).map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join('');
 function age(){if(!S.profile.dob)return'';const b=new Date(S.profile.dob),n=new Date();let a=n.getFullYear()-b.getFullYear();if(n<new Date(n.getFullYear(),b.getMonth(),b.getDate()))a--;return a}
 function addGlu(){if(VIEW)return;const v=+$('g-v').value;if(!v||!$('g-dt').value)return alert('Συμπληρώστε ημερομηνία και τιμή');const g={id:Date.now(),t:$('g-dt').value,v,c:$('g-c').value,n:$('g-n').value};S.glu.push(g);save();$('g-v').value='';$('g-n').value='';render();checkSkip(g);titPrompt(g)}
@@ -164,7 +165,7 @@ function csv(){const{f,e,s}=renderRep();const q=v=>'"'+String(v??'').replace(/"/
  s.G.forEach(g=>o+=[g.t,g.v,CTX[g.c]?.[0],LBL[cls(g)],g.n].map(q).join(';')+'\n');o+='\nΗμερομηνία;Βάρος\n';s.W.forEach(w=>o+=w.d+';'+w.v+'\n');dl(`anafora_${f}_${e}.csv`,o,'text/csv')}
 function exportJSON(){dl('diabetes_backup_'+dstr(new Date())+'.json',JSON.stringify(S,null,1),'application/json')}
 function importJSON(inp,setupOnly){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);
- if(setupOnly){['profile','set','meds','doctor'].forEach(k=>{if(d[k]!==undefined)S[k]=k=='set'||k=='profile'?merge(S[k],d[k]):d[k]})}else S=merge(JSON.parse(JSON.stringify(DEF)),d);
+ if(setupOnly){['profile','set','meds','doctor','docUrl'].forEach(k=>{if(d[k]!==undefined)S[k]=k=='set'||k=='profile'?merge(S[k],d[k]):d[k]})}else S=merge(JSON.parse(JSON.stringify(DEF)),d);
  save();render();alert('Η εισαγωγή ολοκληρώθηκε')}catch(e){alert('Μη έγκυρο αρχείο JSON')}};r.readAsText(f)}
 const SM={'p-name':'profile.name','p-dob':'profile.dob','p-sex':'profile.sex','p-dx':'profile.dx','p-w0':'profile.w0','p-wg':'profile.wg','p-h':'profile.h','t-lo':'set.lo','t-fh':'set.fh','t-ph':'set.ph','t-bh':'set.bh','k-on':'set.skip.on','k-th':'set.skip.th','x-on':'set.tit.on','x-name':'set.tit.name','x-dose':'set.tit.dose','x-days':'set.tit.days','x-lo':'set.tit.lo','x-hi':'set.tit.hi','x-up':'set.tit.up','x-dn':'set.tit.dn'};
 function path(p,v){const k=p.split('.');let o=S;while(k.length>1)o=o[k.shift()];if(v===undefined)return o[k[0]];o[k[0]]=v}
@@ -198,6 +199,16 @@ function titPrompt(g){const x=S.set.tit;if(VIEW||g.c!='fast'||g.v<x.hi||x.dose==
  $('modal').innerHTML=`<div class="modal"><div><h3>💉 ${esc(x.name)}</h3><p>Πρωινή τιμή <b>${g.v}</b> mg/dL (≥${x.hi}).<br>Συνεχόμενα πρωινά ≥${x.hi}: <b>${n}</b> από ${x.days}.</p>
  <p><b>Πρόταση: αύξηση ${esc(x.name)} κατά ${N} μονάδες (${X} → ${X+N})</b></p><p class="note">Ο γιατρός έγραψε αύξηση αν δεν είναι &lt;${x.hi} για ${x.days} συνεχόμενες μέρες.${n<x.days?' Δεν έχουν συμπληρωθεί ακόμη '+x.days+' μέρες.':''} Επιβεβαιώστε με τον γιατρό.</p>
  <button class="b ok" onclick="$('modal').innerHTML='';setDose(${X+N},'αποδοχή πρότασης')">Αποδοχή</button><button class="b g" onclick="$('modal').innerHTML=''">Αγνόηση</button></div></div>`}
+const docId=u=>{u=(u||'').trim();const m=u.match(/\/d\/([\w-]{20,})/);return m?m[1]:/^[\w-]{20,}$/.test(u)?u:''};
+let DOCLIVE=null,docAt=0;function docCache(){try{return JSON.parse(localStorage.getItem(K+'_doc')||'null')}catch(e){return null}}
+function docShow(){const c=docCache(),id=docId(S.docUrl);let txt,src;
+ if(DOCLIVE){txt=DOCLIVE.text;src='🔄 Ζωντανά από Google Doc – τελευταία φόρτωση: '+fmt(DOCLIVE.at)}
+ else if(id&&c&&c.id==id){txt=c.text;src='⚠️ Το Google Doc δεν φορτώθηκε τώρα – εμφανίζεται αντίγραφο από '+fmt(c.at)}
+ else{txt=S.doctor;src=id?'⚠️ Το Google Doc δεν φορτώθηκε – εμφανίζεται το αποθηκευμένο κείμενο':''}
+ $('doc-v').innerHTML=txt?esc(txt):'<i>Οι οδηγίες του γιατρού θα προστεθούν σύντομα.</i>';$('doc-src').textContent=src}
+async function loadDoc(force){const id=docId(S.docUrl);if(!id){DOCLIVE=null;docShow();return}if(!force&&Date.now()-docAt<60000)return;docAt=Date.now();
+ try{const r=await fetch(`https://docs.google.com/document/d/${id}/export?format=txt&t=${Date.now()}`,{cache:'no-store'});if(!r.ok)throw 0;
+  const text=(await r.text()).replace(/^\ufeff/,'').trim();DOCLIVE={text,at:loc(new Date())};try{localStorage.setItem(K+'_doc',JSON.stringify({id,text,at:DOCLIVE.at}))}catch(e){}}catch(e){DOCLIVE=null}docShow()}
 function render(){const p=S.profile;$('hdr').textContent=[p.name,age()!==''?age()+' ετών':'',p.dx].filter(Boolean).join(' · ')||'Συμπληρώστε τα στοιχεία σας στις Ρυθμίσεις';
  document.querySelectorAll('.lo').forEach(e=>e.textContent=S.set.lo);
  $('g-t').innerHTML='<tr><th>Ημ/ώρα</th><th>Τιμή</th><th>Στιγμή</th><th>Κατάσταση</th><th>Σημ.</th><th class="np ed"></th></tr>'+[...S.glu].sort((a,b)=>a.t<b.t?1:-1).map(g=>`<tr class="${cls(g)}"><td>${fmt(g.t)}</td><td><b>${g.v}</b></td><td>${CTX[g.c]?.[0]||''}</td><td>${LBL[cls(g)]}</td><td>${esc(g.n)}</td><td class="np ed"><button class="b r ed" onclick="del('glu',${g.id})">✕</button></td></tr>`).join('');
@@ -208,7 +219,7 @@ function render(){const p=S.profile;$('hdr').textContent=[p.name,age()!==''?age(
  const W=[...S.w].sort((a,b)=>a.d<b.d?-1:1),w0=+p.w0||(W[0]&&W[0].v),wg=+p.wg,cur=W.length?W[W.length-1].v:w0;
  $('w-goal').innerHTML=wGoal(w0,wg,cur);
  $('w-t').innerHTML='<tr><th>Ημερομηνία</th><th>Βάρος</th><th>Μεταβολή</th><th></th></tr>'+W.slice().reverse().map(w=>`<tr><td>${w.d}</td><td>${w.v} kg</td><td>${w0?(w.v-w0).toFixed(1):''}</td><td><button class="b r ed" onclick="del('w',${w.id})">✕</button></td></tr>`).join('');
- $('doc-v').innerHTML=S.doctor?esc(S.doctor):'<i>Οι οδηγίες του γιατρού θα προστεθούν σύντομα.</i>';$('doc-e').value=S.doctor;
+ docShow();$('doc-e').value=S.doctor;$('doc-url').value=S.docUrl||'';
  for(const id in SM){const el=$(id),v=path(SM[id]);if(el.type=='checkbox')el.checked=!!v;else el.value=v??''}
  $('p-miles').value=(S.profile.miles||[]).map(m=>m.kg+' | '+m.label).join('\n');$('r-f').value=S.set.repFreq;$('alerts').innerHTML=titHint();renderRep();if($('s-glu').classList.contains('on'))chart()}
 function askNotif(){if(!('Notification'in window))return alert('Ο browser δεν υποστηρίζει ειδοποιήσεις');Notification.requestPermission().then(p=>alert(p=='granted'?'Οι υπενθυμίσεις ενεργοποιήθηκαν':'Οι ειδοποιήσεις απορρίφθηκαν'))}
@@ -220,7 +231,7 @@ function banner(){if(!VIEW){$('vb').innerHTML='';return}
  $('vb').innerHTML=`<div class="vbanner np"><span>👁️ Προβολή μόνο — τελευταία ενημέρωση: <b>${VLOCAL?'τοπικά δεδομένα (προεπισκόπηση)':S.publishedAt?fmt(S.publishedAt):'—'}</b></span>${HAS_LOCAL&&!VLOCAL?'':AUTOVIEW?'<button onclick="location.href=location.pathname+\'?edit\'">Χρήση ως κάτοχος</button>':''}${VLOCAL?'<button onclick="close()">Κλείσιμο</button>':''}</div>`}
 function start(){document.body.classList.toggle('view',VIEW);navHTML();banner();
 $('g-dt').value=loc(new Date());$('w-d').value=dstr(new Date());$('r-e').value=dstr(new Date());
-if(!VIEW)pubUI();render();tab(DEMO?'rep':'today')}
+if(!VIEW)pubUI();render();loadDoc(true);tab(DEMO?'rep':'today')}
 if(DEMO)seedDemo();
 if(VIEW&&!VLOCAL){$('alerts').innerHTML='<div class="card">Φόρτωση δεδομένων…</div>';loadRemote().then(d=>{S=merge(JSON.parse(JSON.stringify(DEF)),d);S.publishedAt=d.publishedAt;start()}).catch(()=>{if(AUTOVIEW){VIEW=false;start()}else{start();$('alerts').innerHTML='<div class="warn">Δεν βρέθηκαν δημοσιευμένα δεδομένα.</div>'}})}else start();
 </script></body></html>
