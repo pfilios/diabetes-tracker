@@ -27,8 +27,8 @@ body.view .ed{display:none!important}.vbanner{background:#263238;color:#fff;padd
 <div><label>Τιμή (mg/dL)</label><input type="number" id="g-v" inputmode="numeric"></div>
 <div><label>Χρονική στιγμή</label><select id="g-c"></select></div></div>
 <label>Σημειώσεις</label><input id="g-n"><button class="b" onclick="addGlu()">Αποθήκευση</button></div>
-<div class="card"><h3>Γράφημα (τελευταίες 30 ημέρες)</h3><canvas id="chart" width="860" height="220"></canvas>
-<p class="note">🟥 χαμηλή &lt;<span class="lo"></span> · 🟩 στόχος · 🟧 υψηλή. Όρια: γενικές συστάσεις ADA (επεξεργάσιμα στις Ρυθμίσεις).</p></div>
+<div class="card"><h3>Πρωινές μετρήσεις (νηστεία)</h3><canvas id="chart-f" width="860" height="220"></canvas><h3>Μετρήσεις 2 ώρες μετά το φαγητό</h3><canvas id="chart-p" width="860" height="220"></canvas>
+<p class="note">🟥 χαμηλή &lt;<span class="lo"></span> · 🟩 στόχος · 🟨 υψηλή. Όρια: γενικές συστάσεις ADA (επεξεργάσιμα στις Ρυθμίσεις).</p></div>
 <div class="card"><h3>Μετρήσεις</h3><div class="tw"><table id="g-t"></table></div></div></section>
 
 <section id="s-med"><div class="card"><h3>Σημερινές δόσεις (κατά ώρα)</h3><div id="today"></div><button class="b g np ed" onclick="askNotif()">🔔 Ενεργοποίηση υπενθυμίσεων</button><p class="note ed">Οι υπενθυμίσεις λειτουργούν μόνο όσο η σελίδα είναι ανοιχτή.</p></div>
@@ -84,7 +84,7 @@ body.view .ed{display:none!important}.vbanner{background:#263238;color:#fff;padd
 const PRESET=/*PRESET*/null;
 const K='diabetesApp_v1',$=id=>document.getElementById(id);
 const CTX={fast:['Πριν πρωινό (νηστεία)','f'],aBf:['Μετά πρωινό','p'],bLu:['Πριν μεσημεριανό','f'],aLu:['Μετά μεσημεριανό','p'],bDi:['Πριν βραδινό','f'],aDi:['Μετά βραδινό','p'],bed:['Πριν ύπνο','b'],oth:['Άλλο','f']};
-const DEF={profile:{name:'',dob:'',sex:'',dx:'',w0:'',wg:'',h:'',miles:[],visit:''},set:{lo:70,fh:130,ph:180,bh:180,repFreq:'7',skip:{on:true,th:80},tit:{on:false,name:'Tresiba',dose:'',hist:[],days:3,lo:80,hi:120,up:2,dn:2}},meds:[],glu:[],taken:[],w:[],doctor:'',docUrl:''};
+const DEF={profile:{name:'',dob:'',sex:'',dx:'',w0:'',wg:'',h:'',miles:[],visit:''},set:{lo:80,fh:130,ph:180,bh:180,repFreq:'7',skip:{on:true,th:80},tit:{on:false,name:'Tresiba',dose:'',hist:[],days:3,lo:80,hi:120,up:2,dn:2}},meds:[],glu:[],taken:[],w:[],doctor:'',docUrl:''};
 function merge(a,b){for(const k in b){if(b[k]&&typeof b[k]=='object'&&!Array.isArray(b[k])){a[k]=merge(a[k]&&typeof a[k]=='object'?a[k]:{},b[k])}else a[k]=b[k]}return a}
 const Q=new URLSearchParams(location.search),HAS_LOCAL=!!localStorage.getItem(K);
 let VIEW=Q.has('view')||(!HAS_LOCAL&&!PRESET&&!Q.has('edit')),VLOCAL=Q.has('local'),AUTOVIEW=VIEW&&!Q.has('view');
@@ -142,19 +142,19 @@ function titHint(){const x=S.set.tit;if(!x.on)return'';const by={};S.glu.filter(
  else if(have.some(g=>g.v<x.lo))m=`υπάρχει πρωινή τιμή κάτω από ${x.lo} – <b>επικοινωνήστε με τον γιατρό</b> πριν από οποιαδήποτε αλλαγή.`;
  else m=`καμία αλλαγή (τρέχουσα δόση ${dose} μονάδες).`;
  return`<div class="warn">💉 Τιτλοποίηση ${esc(x.name)}: ${m}<br><span class="note">Μόνο υπόδειξη – επιβεβαιώστε με τον γιατρό σας.</span></div>`}
-function chart(){const c=$('chart'),x=c.getContext('2d'),W=c.width,H=c.height;x.clearRect(0,0,W,H);const from=Date.now()-30*864e5;const G=S.glu.filter(g=>new Date(g.t)>=from).sort((a,b)=>a.t<b.t?-1:1);
- const T=36,mx=Math.max(250,...G.map(g=>g.v)),y=v=>H-20-(v/mx)*(H-20-T),xx=t=>40+(new Date(t)-from)/(30*864e5)*(W-50);
- const fh=S.set.fh,ph=S.set.ph,lo=S.set.lo,grp=g=>g.c=='fast'?'m':(CTX[g.c]||CTX.oth)[1]=='p'?'p':'o';
- const SER={m:{col:'#1976d2',lab:'Πρωινή (νηστεία)',th:fh},p:{col:'#ef6c00',lab:'2 ώρες μετά το φαγητό',th:ph},o:{col:'#9e9e9e',lab:'Πριν το φαγητό / άλλο',th:null}};
- const mk=(k,px,py,r)=>{x.beginPath();if(k=='m')x.arc(px,py,r,0,7);else if(k=='p'){x.moveTo(px,py-r-1);x.lineTo(px+r+1,py+r);x.lineTo(px-r-1,py+r);x.closePath()}else x.rect(px-r+1,py-r+1,2*r-2,2*r-2);x.fill()};
- x.fillStyle='#e8f5e9';x.fillRect(40,y(ph),W-50,y(lo)-y(ph));x.font='11px sans-serif';x.lineWidth=1;
- x.strokeStyle='#ccc';x.fillStyle='#666';x.beginPath();x.moveTo(40,y(lo));x.lineTo(W-10,y(lo));x.stroke();x.fillText(lo,5,y(lo)+4);
- [[fh,SER.m.col,'Στόχος πρωινής <'+fh],[ph,SER.p.col,'Στόχος μετά φαγητό <'+ph]].forEach(([v,col,l])=>{x.save();x.setLineDash([6,4]);x.strokeStyle=col;x.beginPath();x.moveTo(40,y(v));x.lineTo(W-10,y(v));x.stroke();x.restore();x.fillStyle='#666';x.fillText(v,5,y(v)+4);});const TL=()=>[[fh,SER.m.col,'Στόχος πρωινής <'+fh],[ph,SER.p.col,'Στόχος μετά φαγητό <'+ph]].forEach(([v,col,l])=>{const w=x.measureText(l).width;x.fillStyle='rgba(255,255,255,.85)';x.fillRect(W-15-w,y(v)-14,w+6,13);x.fillStyle=col;x.fillText(l,W-12-w,y(v)-4)});
- let lx=40;['m','p','o'].forEach(k=>{x.fillStyle='#fff';mk(k,lx+5,12,5);x.lineWidth=1.5;x.strokeStyle=SER[k].col;x.stroke();x.lineWidth=1;x.fillStyle='#333';x.fillText(SER[k].lab,lx+14,16);lx+=x.measureText(SER[k].lab).width+24});
- [['#2e7d32',null,'Εντός στόχου'],['#f2c200','#a07c00','Υψηλή'],['#c62828',null,'Χαμηλή']].forEach(([fc,oc,l])=>{x.fillStyle=fc;x.beginPath();x.arc(lx+5,12,5,0,7);x.fill();if(oc){x.strokeStyle=oc;x.stroke()}x.fillStyle='#333';x.fillText(l,lx+14,16);lx+=x.measureText(l).width+28});
- if(!G.length){TL();x.fillStyle='#666';x.fillText('Δεν υπάρχουν μετρήσεις',W/2-60,H/2);return}
- ['m','p'].forEach(k=>{const P=G.filter(g=>grp(g)==k);if(P.length<2)return;x.strokeStyle=SER[k].col;x.globalAlpha=.6;x.beginPath();P.forEach((g,i)=>i?x.lineTo(xx(g.t),y(g.v)):x.moveTo(xx(g.t),y(g.v)));x.stroke();x.globalAlpha=1});
- G.forEach(g=>{const k=grp(g),st=cls(g),r=k=='o'?4:5;x.fillStyle={low:'#c62828',tgt:'#2e7d32',high:'#f2c200'}[st];mk(k,xx(g.t),y(g.v),r);x.lineWidth=1.5;x.strokeStyle=st=='high'?'#a07c00':SER[k].col;x.stroke();x.lineWidth=1});TL()}
+function chart(){const from=Date.now()-30*864e5,G=S.glu.filter(g=>new Date(g.t)>=from).sort((a,b)=>a.t<b.t?-1:1);
+ chart1('chart-f',G.filter(g=>g.c=='fast'),S.set.fh,'#1976d2','Στόχος πρωινής <',from,'k');chart1('chart-p',G.filter(g=>(CTX[g.c]||CTX.oth)[1]=='p'),S.set.ph,'#ef6c00','Στόχος μετά φαγητό <',from,'t')}
+function chart1(id,G,th,col,tl,from,shp){const c=$(id);if(!c)return;const dpr=window.devicePixelRatio||1,W=c.clientWidth||860,H=c.clientHeight||220,x=c.getContext('2d'),lo=S.set.lo,T=30;c.width=Math.round(W*dpr);c.height=Math.round(H*dpr);x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,H);
+ const mx=Math.max(th+70,250,...G.map(g=>g.v)),y=v=>H-20-(v/mx)*(H-20-T),xx=t=>40+(new Date(t)-from)/(30*864e5)*(W-50);
+ const mk=(px,py,r)=>{x.beginPath();if(shp=='t'){x.moveTo(px,py-r-1);x.lineTo(px+r+1,py+r);x.lineTo(px-r-1,py+r);x.closePath()}else x.arc(px,py,r,0,7)};
+ x.fillStyle='#e8f5e9';x.fillRect(40,y(th),W-50,y(lo)-y(th));x.font='12px sans-serif';x.lineWidth=1;
+ x.strokeStyle='#eee';x.fillStyle='#999';{const st=Math.max(1,Math.ceil(42/((W-50)/30))),d0=new Date(from);d0.setHours(0,0,0,0);d0.setDate(d0.getDate()+1);for(let i=0,dt=new Date(d0);dt<=Date.now();i++,dt.setDate(dt.getDate()+1)){const px=xx(dt);x.strokeStyle=i%st?'#f3f3f3':'#e2e2e2';x.beginPath();x.moveTo(px,T);x.lineTo(px,H-20);x.stroke();if(i%st==0){const l=dt.getDate()+'/'+(dt.getMonth()+1),w=x.measureText(l).width;x.fillText(l,Math.min(px-w/2,W-w-2),H-5)}}}x.strokeStyle='#ccc';x.fillStyle='#666';x.beginPath();x.moveTo(40,y(lo));x.lineTo(W-10,y(lo));x.stroke();x.fillText(lo,5,y(lo)+4);
+ x.save();x.setLineDash([6,4]);x.strokeStyle=col;x.beginPath();x.moveTo(40,y(th));x.lineTo(W-10,y(th));x.stroke();x.restore();x.fillStyle='#666';x.fillText(th,5,y(th)+4);
+ let lx=40;[['#2e7d32',null,'Εντός στόχου ('+lo+'–'+th+')'],['#f2c200','#a07c00','Υψηλή (>'+th+')'],['#c62828',null,'Χαμηλή (<'+lo+')']].forEach(([fc,oc,l])=>{x.fillStyle=fc;mk(lx+6,12,5);x.fill();if(oc){x.strokeStyle=oc;x.lineWidth=1.5;x.stroke();x.lineWidth=1}x.fillStyle='#333';x.fillText(l,lx+15,16);lx+=x.measureText(l).width+30});
+ const TL=()=>{const l=tl+th,w=x.measureText(l).width;x.fillStyle='rgba(255,255,255,.85)';x.fillRect(W-15-w,y(th)-15,w+6,14);x.fillStyle=col;x.fillText(l,W-12-w,y(th)-4)};
+ if(!G.length){TL();x.fillStyle='#666';x.fillText('Δεν υπάρχουν μετρήσεις',W/2-60,H/2+10);return}
+ if(G.length>1){x.strokeStyle=col;x.globalAlpha=.5;x.beginPath();G.forEach((g,i)=>i?x.lineTo(xx(g.t),y(g.v)):x.moveTo(xx(g.t),y(g.v)));x.stroke();x.globalAlpha=1}
+ G.forEach(g=>{const st=g.v<lo?'low':g.v>th?'high':'tgt';x.fillStyle={low:'#c62828',tgt:'#2e7d32',high:'#f2c200'}[st];mk(xx(g.t),y(g.v),5);x.fill();x.lineWidth=1.5;x.strokeStyle=st=='high'?'#a07c00':'#fff';x.stroke();x.lineWidth=1});TL()}
 function renderRep(){const n=+S.set.repFreq,e=$('r-e').value||dstr(new Date()),fd=new Date(e);fd.setDate(fd.getDate()-n+1);const f=dstr(fd),s=stats(f,e),p=S.profile;
  const wt=s.W.length?`${s.W[0].v} → ${s.W[s.W.length-1].v} kg (${(s.W[s.W.length-1].v-s.W[0].v).toFixed(1)} kg)`:'Δεν υπάρχουν μετρήσεις';
  const pct=k=>s.n?Math.round(s.c[k]/s.n*100)+'%':'-';
