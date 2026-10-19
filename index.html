@@ -141,10 +141,10 @@ function stats(from,to){const G=S.glu.filter(g=>{const d=g.t.slice(0,10);return 
  for(let d=new Date(from);dstr(d)<=to;d.setDate(d.getDate()+1)){const ds=dstr(d);if(ds>dstr(new Date()))break;S.meds.filter(m=>onDay(m,ds)).forEach(m=>{exp+=m.times.length||1;tk+=S.taken.filter(x=>x.m==m.id&&x.d==ds).length})}
  const W=S.w.filter(w=>w.d>=from&&w.d<=to).sort((a,b)=>a.d<b.d?-1:1);
  return{G,n:v.length,avg:v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length):'-',min:v.length?Math.min(...v):'-',max:v.length?Math.max(...v):'-',c,adh:exp?Math.round(tk/exp*100):'-',exp,tk,W}}
-function titHint(){const x=S.set.tit;if(!x.on)return'';const by={};S.glu.filter(g=>g.c=='fast').forEach(g=>{const d=g.t.slice(0,10);if(!by[d]||g.t<by[d].t)by[d]=g});
+function titHint(){const x=S.set.tit;if(!x.on)return'';const by={},L=titLast(),Wt=titWait();S.glu.filter(g=>g.c=='fast'&&(!L||g.t>L)).forEach(g=>{const d=g.t.slice(0,10);if(!by[d]||g.t<by[d].t)by[d]=g});
  const days=[];for(let i=0;i<x.days;i++){const d=new Date();d.setDate(d.getDate()-i);days.push(by[dstr(d)])}
  const have=days.filter(Boolean),dose=+x.dose||0;
- let m;if(have.length<x.days)m=`χρειάζονται ${x.days} συνεχόμενες πρωινές μετρήσεις νηστείας (υπάρχουν ${have.length}).`;
+ let m;if(Wt>0)m=`τελευταία αλλαγή δόσης ${fmt(L)} (→ ${dose} μονάδες). Νέα πρόταση όχι πριν από ${fmt(new Date(Date.now()+Wt))} και μόνο με ${x.days} πρωινές μετρήσεις μετά την αλλαγή.`;else if(have.length<x.days)m=`χρειάζονται ${x.days} συνεχόμενες πρωινές μετρήσεις νηστείας (υπάρχουν ${have.length}).`;
  else if(have.every(g=>g.v>=x.hi))m=`οι τελευταίες ${x.days} πρωινές τιμές (${have.map(g=>g.v).join(', ')}) είναι ≥${x.hi} → υπόδειξη: <b>αύξηση κατά ${x.up} μονάδες (${dose} → ${dose+ +x.up})</b>. Μετά την αλλαγή ενημερώστε την τρέχουσα δόση στις Ρυθμίσεις.`;
  else if(have.some(g=>g.v<x.lo))m=`υπάρχει πρωινή τιμή κάτω από ${x.lo} – <b>επικοινωνήστε με τον γιατρό</b> πριν από οποιαδήποτε αλλαγή.`;
  else m=`καμία αλλαγή (τρέχουσα δόση ${dose} μονάδες).`;
@@ -196,7 +196,7 @@ function importJSON(inp,setupOnly){const f=inp.files[0];if(!f)return;const r=new
  save();render();alert('Η εισαγωγή ολοκληρώθηκε')}catch(e){alert('Μη έγκυρο αρχείο JSON')}};r.readAsText(f)}
 const SM={'p-name':'profile.name','p-dob':'profile.dob','p-sex':'profile.sex','p-dx':'profile.dx','p-w0':'profile.w0','p-wg':'profile.wg','p-h':'profile.h','p-visit':'profile.visit','t-lo':'set.lo','t-fh':'set.fh','t-ph':'set.ph','t-bh':'set.bh','k-on':'set.skip.on','k-th':'set.skip.th','x-on':'set.tit.on','x-name':'set.tit.name','x-dose':'set.tit.dose','x-days':'set.tit.days','x-lo':'set.tit.lo','x-hi':'set.tit.hi','x-up':'set.tit.up','x-dn':'set.tit.dn'};
 function path(p,v){const k=p.split('.');let o=S;while(k.length>1)o=o[k.shift()];if(v===undefined)return o[k[0]];o[k[0]]=v}
-function saveSet(){if(VIEW)return;const od=S.set.tit.dose;for(const id in SM){const el=$(id);let v=el.type=='checkbox'?el.checked:el.value;if(el.type=='number')v=v===''?'':+v;path(SM[id],v)}if(S.set.tit.dose!==od&&S.set.tit.dose!==''){S.set.tit.hist=S.set.tit.hist||[];S.set.tit.hist.push({d:loc(new Date()),from:od===''?null:+od,to:+S.set.tit.dose,how:'ρυθμίσεις'})}S.profile.miles=$('p-miles').value.split('\n').map(l=>l.split('|')).filter(a=>+a[0]).map(a=>({kg:+a[0],label:(a[1]||'').trim()}));save();render();alert('Αποθηκεύτηκε')}
+function saveSet(){if(VIEW)return;const od=S.set.tit.dose;for(const id in SM){const el=$(id);let v=el.type=='checkbox'?el.checked:el.value;if(el.type=='number')v=v===''?'':+v;path(SM[id],v)}if(S.set.tit.dose!==od&&S.set.tit.dose!==''){S.set.tit.hist=S.set.tit.hist||[];S.set.tit.hist.push({d:loc(new Date()),from:od===''?null:+od,to:+S.set.tit.dose,how:'ρυθμίσεις'})}titSync();S.profile.miles=$('p-miles').value.split('\n').map(l=>l.split('|')).filter(a=>+a[0]).map(a=>({kg:+a[0],label:(a[1]||'').trim()}));save();render();alert('Αποθηκεύτηκε')}
 function todayHTML(d){const by={};S.meds.filter(m=>onDay(m,d)).forEach(m=>(m.times.length?m.times:['—']).forEach(t=>(by[t]=by[t]||[]).push(m)));
  const ks=Object.keys(by).sort();if(!ks.length)return'<p>Δεν υπάρχουν δόσεις για σήμερα.</p>';
  return '<table>'+ks.map(t=>`<tr><td style="font-size:1.2em;font-weight:bold;vertical-align:top;width:70px">${esc(t)}</td><td>${by[t].map(m=>{const ok=S.taken.some(x=>x.m==m.id&&x.d==d&&x.s==t);
@@ -215,13 +215,16 @@ function wGoal(){const{w0,wg,cur,M,reached,next}=wInfo();if(!w0||!wg)return'<p>�
  <table>${M.map(m=>`<tr class="${cur<=m.kg?'tgt':''}"><td>${m.kg} kg</td><td>${esc(m.label)}</td><td>${cur<=m.kg?'<span class="badge" style="background:#2e7d32;color:#fff">🎉 Επιτεύχθηκε!</span>':'απομένουν '+(cur-m.kg).toFixed(1)+' kg'}</td></tr>`).join('')}</table>`}
 const isTit=m=>S.set.tit.name&&m.name.trim().toLowerCase()==S.set.tit.name.trim().toLowerCase();
 const mDose=m=>isTit(m)&&S.set.tit.dose!==''?S.set.tit.dose+' μονάδες':m.dose;
-function setDose(nv,how){if(VIEW)return;const x=S.set.tit;nv=+nv;if(!nv||nv==x.dose)return;x.hist=x.hist||[];x.hist.push({d:loc(new Date()),from:x.dose===''?null:+x.dose,to:nv,how});x.dose=nv;save();render()}
+function setDose(nv,how){if(VIEW)return;const x=S.set.tit;nv=+nv;if(!nv||nv==x.dose)return;x.hist=x.hist||[];x.hist.push({d:loc(new Date()),from:x.dose===''?null:+x.dose,to:nv,how});x.dose=nv;titSync();save();render()}
+function titSync(){const x=S.set.tit;if(x.dose!=='')S.meds.filter(isTit).forEach(m=>m.dose=String(x.dose))}
+function titLast(){const h=S.set.tit.hist||[];return h.length?h.reduce((a,b)=>b.d>a?b.d:a,h[0].d):''}
+function titWait(){const l=titLast();if(!l)return 0;const r=new Date(l).getTime()+(+S.set.tit.days||0)*864e5-Date.now();return r>0?r:0}
 function doseHTML(){const x=S.set.tit,h=[...(x.hist||[])].reverse();
  return`<p style="font-size:1.3em"><b>${x.dose!==''?x.dose+' μονάδες':'— (δεν έχει οριστεί)'}</b></p>
  <div class="ed row"><div><input type="number" class="dose-in" placeholder="νέα δόση"></div><div><button class="b" style="margin:0" onclick="setDose(this.closest('.card').querySelector('.dose-in').value,'χειροκίνητα')">Αλλαγή δόσης</button></div></div>
  ${h.length?`<h4>Ιστορικό δόσης</h4><table><tr><th>Ημερομηνία</th><th>Αλλαγή</th><th>Τρόπος</th></tr>${h.map(e=>`<tr><td>${fmt(e.d)}</td><td>${e.from??'—'} → <b>${e.to}</b></td><td>${esc(e.how)}</td></tr>`).join('')}</table>`:'<p class="note">Δεν υπάρχουν αλλαγές δόσης.</p>'}`}
-function consec(){const x=S.set.tit,by={};S.glu.filter(g=>g.c=='fast').forEach(g=>{const d=g.t.slice(0,10);if(!by[d]||g.t<by[d].t)by[d]=g});let n=0;for(let i=0;;i++){const d=new Date();d.setDate(d.getDate()-i);const g=by[dstr(d)];if(!g){if(i==0)continue;break}if(g.v>=x.hi)n++;else break}return n}
-function titPrompt(g){const x=S.set.tit;if(VIEW||g.c!='fast'||g.v<x.hi||x.dose==='')return;const X=+x.dose,N=+x.up,n=consec();
+function consec(){const x=S.set.tit,by={},L=titLast();S.glu.filter(g=>g.c=='fast'&&(!L||g.t>L)).forEach(g=>{const d=g.t.slice(0,10);if(!by[d]||g.t<by[d].t)by[d]=g});let n=0;for(let i=0;;i++){const d=new Date();d.setDate(d.getDate()-i);const g=by[dstr(d)];if(!g){if(i==0)continue;break}if(g.v>=x.hi)n++;else break}return n}
+function titPrompt(g){const x=S.set.tit;if(VIEW||!x.on||g.c!='fast'||g.v<x.hi||x.dose==='')return;const L=titLast();if(L&&g.t<=L)return;const X=+x.dose,N=+x.up,n=consec();if(titWait()>0||n<+x.days)return;
  $('modal').innerHTML=`<div class="modal"><div><h3>💉 ${esc(x.name)}</h3><p>Πρωινή τιμή <b>${g.v}</b> mg/dL (≥${x.hi}).<br>Συνεχόμενα πρωινά ≥${x.hi}: <b>${n}</b> από ${x.days}.</p>
  <p><b>Πρόταση: αύξηση ${esc(x.name)} κατά ${N} μονάδες (${X} → ${X+N})</b></p><p class="note">Ο γιατρός έγραψε αύξηση αν δεν είναι &lt;${x.hi} για ${x.days} συνεχόμενες μέρες.${n<x.days?' Δεν έχουν συμπληρωθεί ακόμη '+x.days+' μέρες.':''} Επιβεβαιώστε με τον γιατρό.</p>
  <button class="b ok" onclick="$('modal').innerHTML='';setDose(${X+N},'αποδοχή πρότασης')">Αποδοχή</button><button class="b g" onclick="$('modal').innerHTML=''">Αγνόηση</button></div></div>`}
