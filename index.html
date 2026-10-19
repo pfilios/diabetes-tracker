@@ -216,13 +216,14 @@ function wGoal(){const{w0,wg,cur,M,reached,next}=wInfo();if(!w0||!wg)return'<p>�
 const isTit=m=>S.set.tit.name&&m.name.trim().toLowerCase()==S.set.tit.name.trim().toLowerCase();
 const mDose=m=>isTit(m)&&S.set.tit.dose!==''?S.set.tit.dose+' μονάδες':m.dose;
 function setDose(nv,how){if(VIEW)return;const x=S.set.tit;nv=+nv;if(!nv||nv==x.dose)return;x.hist=x.hist||[];x.hist.push({d:loc(new Date()),from:x.dose===''?null:+x.dose,to:nv,how});x.dose=nv;titSync();save();render()}
+function delHist(i){if(VIEW)return;const H=S.set.tit.hist||[],e=H[i];if(!e)return;const dt=new Date(e.d),ds=isNaN(dt)?e.d:`${pad(dt.getDate())}/${pad(dt.getMonth()+1)} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;if(!confirm(`Διαγραφή καταχώρησης: ${ds} · ${e.from??'—'} → ${e.to};`))return;H.splice(i,1);save();render()}
 function titSync(){const x=S.set.tit;if(x.dose!=='')S.meds.filter(isTit).forEach(m=>m.dose=String(x.dose))}
 function titLast(){const h=S.set.tit.hist||[];return h.length?h.reduce((a,b)=>b.d>a?b.d:a,h[0].d):''}
 function titWait(){const l=titLast();if(!l)return 0;const r=new Date(l).getTime()+(+S.set.tit.days||0)*864e5-Date.now();return r>0?r:0}
 function doseHTML(){const x=S.set.tit,h=[...(x.hist||[])].reverse();
  return`<p style="font-size:1.3em"><b>${x.dose!==''?x.dose+' μονάδες':'— (δεν έχει οριστεί)'}</b></p>
  <div class="ed row"><div><input type="number" class="dose-in" placeholder="νέα δόση"></div><div><button class="b" style="margin:0" onclick="setDose(this.closest('.card').querySelector('.dose-in').value,'χειροκίνητα')">Αλλαγή δόσης</button></div></div>
- ${h.length?`<h4>Ιστορικό δόσης</h4><table><tr><th>Ημερομηνία</th><th>Αλλαγή</th><th>Τρόπος</th></tr>${h.map(e=>`<tr><td>${fmt(e.d)}</td><td>${e.from??'—'} → <b>${e.to}</b></td><td>${esc(e.how)}</td></tr>`).join('')}</table>`:'<p class="note">Δεν υπάρχουν αλλαγές δόσης.</p>'}`}
+ ${h.length?`<h4>Ιστορικό δόσης</h4><table><tr><th>Ημερομηνία</th><th>Αλλαγή</th><th>Τρόπος</th><th class="ed np"></th></tr>${h.map((e,i)=>`<tr><td>${fmt(e.d)}</td><td>${e.from??'—'} → <b>${e.to}</b></td><td>${esc(e.how)}</td><td class="ed np"><button class="b r" style="padding:4px 9px;margin:0" title="Διαγραφή καταχώρησης" onclick="delHist(${h.length-1-i})">✕</button></td></tr>`).join('')}</table>`:'<p class="note">Δεν υπάρχουν αλλαγές δόσης.</p>'}`}
 function consec(){const x=S.set.tit,by={},L=titLast();S.glu.filter(g=>g.c=='fast'&&(!L||g.t>L)).forEach(g=>{const d=g.t.slice(0,10);if(!by[d]||g.t<by[d].t)by[d]=g});let n=0;for(let i=0;;i++){const d=new Date();d.setDate(d.getDate()-i);const g=by[dstr(d)];if(!g){if(i==0)continue;break}if(g.v>=x.hi)n++;else break}return n}
 function titPrompt(g){const x=S.set.tit;if(VIEW||!x.on||g.c!='fast'||g.v<x.hi||x.dose==='')return;const L=titLast();if(L&&g.t<=L)return;const X=+x.dose,N=+x.up,n=consec();if(titWait()>0||n<+x.days)return;
  $('modal').innerHTML=`<div class="modal"><div><h3>💉 ${esc(x.name)}</h3><p>Πρωινή τιμή <b>${g.v}</b> mg/dL (≥${x.hi}).<br>Συνεχόμενα πρωινά ≥${x.hi}: <b>${n}</b> από ${x.days}.</p>
